@@ -1,0 +1,15 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Rounded Square -->
+  <rect width="100" height="100" rx="20" fill="#F8FAFC"/>
+  
+  <!-- Arrow Head -->
+  <path d="M50 15L80 45H20 L50 15Z" fill="#1E40AF"/>
+  
+  <!-- Grid / Box Body -->
+  <rect x="35" y="45" width="30" height="40" rx="2" fill="#1E40AF"/>
+  
+  <!-- Grid Lines (The "Stock" detail) -->
+  <line x1="35" y1="58" x2="65" y2="58" stroke="white" stroke-width="2"/>
+  <line x1="35" y1="71" x2="65" y2="71" stroke="white" stroke-width="2"/>
+  <line x1="50" y1="45" x2="50" y2="85" stroke="white" stroke-width="2"/>
+</svg>
