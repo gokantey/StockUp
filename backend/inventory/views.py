@@ -1,3 +1,4 @@
+import logging
 from django.db import transaction
 from rest_framework import generics, permissions, filters, status
 from rest_framework.response import Response
@@ -6,11 +7,17 @@ from .models import Category, Product, StockMovement
 from .serializers import CategorySerializer, ProductSerializer, StockMovementSerializer
 from accounts.views import IsAdmin
 
+logger = logging.getLogger('stockup')
+
 
 class CategoryListCreateView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAdmin()]
+        return [permissions.IsAuthenticated()]
 
 
 class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -21,16 +28,17 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class ProductListCreateView(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['name', 'sku', 'category__name']
+    filter_backends  = [filters.SearchFilter]
+    search_fields    = ['name', 'sku', 'category__name']
 
     def get_queryset(self):
         show_archived = self.request.query_params.get('archived') == 'true'
         qs = Product.objects.select_related('category').filter(is_active=not show_archived)
         category = self.request.query_params.get('category')
         if category:
-            qs = qs.filter(category_id=category)
+            if not str(category).isdigit():
+                return Product.objects.none()
+            qs = qs.filter(category_id=int(category))
         return qs
 
     def get_permissions(self):
@@ -53,7 +61,7 @@ class StockInView(APIView):
         serializer = StockMovementSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        product = serializer.validated_data['product']
+        product  = serializer.validated_data['product']
         quantity = serializer.validated_data['quantity']
 
         movement = serializer.save(
@@ -63,6 +71,10 @@ class StockInView(APIView):
         product.stock_quantity += quantity
         product.save(update_fields=['stock_quantity'])
 
+        logger.info(
+            'Stock IN: product="%s" qty=%d by user pk=%s',
+            product.name, quantity, request.user.pk,
+        )
         return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)
 
 
@@ -71,21 +83,30 @@ class StockAdjustmentView(APIView):
 
     @transaction.atomic
     def post(self, request):
-        product_id = request.data.get('product')
+        product_id   = request.data.get('product')
         new_quantity = request.data.get('new_quantity')
-        reason = request.data.get('reason', '').strip()
+        reason       = str(request.data.get('reason', '')).strip()[:500]
 
         if not product_id or new_quantity is None:
-            return Response({'detail': 'product and new_quantity are required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'product and new_quantity are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if not reason:
-            return Response({'detail': 'A reason is required for stock adjustments.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'A reason is required for stock adjustments.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             new_quantity = int(new_quantity)
             if new_quantity < 0:
                 raise ValueError
         except (ValueError, TypeError):
-            return Response({'detail': 'new_quantity must be a non-negative integer.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'new_quantity must be a non-negative integer.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             product = Product.objects.get(pk=product_id, is_active=True)
@@ -93,7 +114,7 @@ class StockAdjustmentView(APIView):
             return Response({'detail': 'Product not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         old_quantity = product.stock_quantity
-        delta = new_quantity - old_quantity
+        delta        = new_quantity - old_quantity
 
         movement = StockMovement.objects.create(
             product=product,
@@ -107,22 +128,32 @@ class StockAdjustmentView(APIView):
         product.stock_quantity = new_quantity
         product.save(update_fields=['stock_quantity'])
 
+        logger.info(
+            'Stock ADJUSTMENT: product="%s" %d→%d by admin pk=%s. Reason: %s',
+            product.name, old_quantity, new_quantity, request.user.pk, reason,
+        )
         return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)
 
 
 class StockMovementListView(generics.ListAPIView):
-    serializer_class = StockMovementSerializer
+    serializer_class   = StockMovementSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         qs = StockMovement.objects.select_related('product', 'supplier', 'created_by')
-        product_id = self.request.query_params.get('product')
+        product_id    = self.request.query_params.get('product')
         movement_type = self.request.query_params.get('type')
-        date_from = self.request.query_params.get('date_from')
-        date_to = self.request.query_params.get('date_to')
+        date_from     = self.request.query_params.get('date_from')
+        date_to       = self.request.query_params.get('date_to')
+
         if product_id:
-            qs = qs.filter(product_id=product_id)
+            if not str(product_id).isdigit():
+                return StockMovement.objects.none()
+            qs = qs.filter(product_id=int(product_id))
         if movement_type:
+            allowed_types = [StockMovement.IN, StockMovement.OUT, StockMovement.ADJUST]
+            if movement_type not in allowed_types:
+                return StockMovement.objects.none()
             qs = qs.filter(movement_type=movement_type)
         if date_from:
             qs = qs.filter(created_at__date__gte=date_from)

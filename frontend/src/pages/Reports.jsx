@@ -1,134 +1,302 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, BarChart2, Download } from 'lucide-react'
+import { Download, BarChart2, Package, TrendingUp, DollarSign } from 'lucide-react'
+import {
+  AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts'
 import api from '../api/axios'
 import { downloadCsv } from '../utils/exportCsv'
 
+function SummaryTip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: '10px', padding: '0.75rem 1rem', boxShadow: '0 8px 28px rgba(0,0,0,0.4)' }}>
+      <p style={{ color: 'var(--text-3)', fontSize: '0.72rem', marginBottom: '0.35rem' }}>{label}</p>
+      {payload.map(p => (
+        <p key={p.name} style={{ color: p.color, fontWeight: 700, fontSize: '0.875rem', fontFamily: 'JetBrains Mono, monospace' }}>
+          {p.name === 'revenue' ? `GH₵ ${Number(p.value).toFixed(2)}` : `${p.value} sales`}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+function ValueTip({ active, payload }) {
+  if (!active || !payload?.length) return null
+  const d = payload[0]?.payload
+  return (
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: '10px', padding: '0.75rem 1rem', boxShadow: '0 8px 28px rgba(0,0,0,0.4)' }}>
+      <p style={{ color: 'var(--text-3)', fontSize: '0.72rem', marginBottom: '0.3rem' }}>{d?.name}</p>
+      <p style={{ color: 'var(--blue)', fontWeight: 700, fontSize: '0.875rem', fontFamily: 'JetBrains Mono, monospace' }}>GH₵ {Number(d?.total_value).toFixed(2)}</p>
+      <p style={{ color: 'var(--text-3)', fontSize: '0.72rem', marginTop: '0.2rem' }}>{d?.stock_quantity} units in stock</p>
+    </div>
+  )
+}
+
 export default function Reports() {
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [dateFrom, setDateFrom]   = useState('')
+  const [dateTo, setDateTo]       = useState('')
   const [exporting, setExporting] = useState(false)
 
-  const handleExport = async () => {
-    setExporting(true)
+  const { data: summary, isLoading: summaryLoading } = useQuery({
+    queryKey: ['report-summary', dateFrom, dateTo],
+    queryFn: () => {
+      const p = new URLSearchParams()
+      if (dateFrom) p.append('date_from', dateFrom)
+      if (dateTo)   p.append('date_to',   dateTo)
+      return api.get(`/reports/sales-summary/?${p}`).then(r => r.data)
+    },
+  })
+
+  // Backend returns a flat array of products
+  const { data: stockValue = [], isLoading: valueLoading } = useQuery({
+    queryKey: ['report-stock-value'],
+    queryFn: () => api.get('/reports/stock-value/').then(r => r.data),
+  })
+
+  const handleExport = async (type) => {
+    setExporting(type)
     try {
-      await downloadCsv('/api/reports/stock-value/export/', 'inventory_value.csv')
+      if (type === 'sales') {
+        const p = new URLSearchParams()
+        if (dateFrom) p.append('date_from', dateFrom)
+        if (dateTo)   p.append('date_to',   dateTo)
+        await downloadCsv(`/api/sales/export/?${p}`, `sales_${dateFrom || 'all'}.csv`)
+      } else {
+        await downloadCsv('/api/reports/stock-value/export/', 'inventory_value.csv')
+      }
     } finally {
       setExporting(false)
     }
   }
 
-  const { data: stockValue, isLoading: svLoading } = useQuery({
-    queryKey: ['report-stock-value'],
-    queryFn: () => api.get('/reports/stock-value/').then((r) => r.data),
-  })
+  // stockValue is a flat array — compute totals directly
+  const totalInventoryValue = stockValue.reduce((sum, p) => sum + Number(p.total_value || 0), 0)
+  const topByValue          = [...stockValue].sort((a, b) => Number(b.total_value) - Number(a.total_value)).slice(0, 8)
 
-  const { data: salesSummary, isLoading: ssLoading } = useQuery({
-    queryKey: ['report-sales', dateFrom, dateTo],
-    queryFn: () => {
-      const p = new URLSearchParams()
-      if (dateFrom) p.append('date_from', dateFrom)
-      if (dateTo) p.append('date_to', dateTo)
-      return api.get(`/reports/sales-summary/?${p}`).then((r) => r.data)
-    },
-  })
+  // Only build metric cards when summary is loaded
+  const metricCards = summary
+    ? [
+        { label: 'Total Revenue',   value: `GH₵ ${Number(summary.total_revenue  || 0).toFixed(2)}`,      color: 'var(--teal)',   Icon: TrendingUp },
+        { label: 'Total Sales',     value: summary.total_sales      ?? 0,                                 color: 'var(--blue)',   Icon: BarChart2  },
+        { label: 'Items Sold',      value: summary.total_items_sold ?? 0,                                 color: 'var(--purple)', Icon: Package    },
+        { label: 'Avg Order Value', value: `GH₵ ${Number(summary.avg_sale_value || 0).toFixed(2)}`,      color: 'var(--amber)',  Icon: DollarSign },
+      ]
+    : []
+
+  // Safe access to trend array
+  const trendData = summary?.trend ?? []
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Reports</h1>
+        <div>
+          <h1 className="page-title">Reports</h1>
+          <p className="page-subtitle">Sales performance and inventory analytics</p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button onClick={() => handleExport('sales')} disabled={!!exporting} className="btn btn-ghost btn-sm">
+            <Download size={13} /> {exporting === 'sales' ? 'Exporting…' : 'Sales CSV'}
+          </button>
+          <button onClick={() => handleExport('value')} disabled={!!exporting} className="btn btn-ghost btn-sm">
+            <Download size={13} /> {exporting === 'value' ? 'Exporting…' : 'Inventory CSV'}
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Inventory Value */}
-        <div className="card overflow-hidden flex flex-col">
-          <div className="card-header">
-            <div className="flex items-center gap-2.5">
-              <TrendingUp size={16} className="text-emerald-500" />
-              <span className="card-header-title">Inventory Value</span>
-            </div>
-            <div className="flex items-center gap-3">
-              {stockValue && (
-                <span className="font-bold text-emerald-700 text-base">
-                  GH₵ {Number(stockValue.total_stock_value).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              )}
-              <button onClick={handleExport} disabled={exporting || !stockValue} className="btn btn-ghost btn-sm">
-                <Download size={13} /> {exporting ? 'Exporting…' : 'CSV'}
-              </button>
-            </div>
+      {/* Date filter */}
+      <div className="card" style={{ padding: '1.125rem 1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '0.875rem' }}>
+          <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.07em', alignSelf: 'flex-end', paddingBottom: '0.55rem', marginRight: '0.25rem' }}>Filter</p>
+          <div>
+            <label className="label">From</label>
+            <input type="date" className="input" style={{ width: 160 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
           </div>
-          {svLoading ? (
-            <div className="flex items-center justify-center h-32">
-              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : (
-            <div className="overflow-y-auto flex-1" style={{ maxHeight: 380 }}>
-              <table className="table">
-                <thead>
-                  <tr><th>Product</th><th>Stock</th><th>Cost Price</th><th>Total Value</th></tr>
-                </thead>
-                <tbody>
-                  {stockValue?.products.map((p) => (
-                    <tr key={p.id}>
-                      <td className="font-medium text-slate-800">{p.name}</td>
-                      <td className="text-slate-600">{p.stock_quantity}</td>
-                      <td className="text-slate-500">GH₵ {p.cost_price}</td>
-                      <td className="font-semibold text-slate-900">GH₵ {Number(p.stock_value).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                  {stockValue?.products.length === 0 && (
-                    <tr><td colSpan={4} className="text-center py-8 text-slate-400 text-sm">No products.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          <div>
+            <label className="label">To</label>
+            <input type="date" className="input" style={{ width: 160 }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button onClick={() => { setDateFrom(''); setDateTo('') }} className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-end' }}>
+              Clear
+            </button>
           )}
         </div>
+      </div>
 
-        {/* Sales Summary */}
-        <div className="card overflow-hidden flex flex-col">
+      {/* Summary metric cards */}
+      {summaryLoading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', height: 80, alignItems: 'center' }}>
+          <div className="spinner" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 xl:grid-cols-4" style={{ gap: '1rem', marginBottom: '1.5rem' }}>
+          {metricCards.map(({ label, value, color, Icon }) => (
+            <div key={label} style={{ background: 'var(--bg-3)', borderRadius: 'var(--radius-xl)', border: `1px solid ${color}20`, padding: '1.375rem 1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+                <p style={{ fontSize: '0.69rem', fontWeight: 700, color: color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</p>
+                <div style={{ width: 30, height: 30, borderRadius: '7px', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon size={14} color={color} />
+                </div>
+              </div>
+              <p className="mono" style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1 }}>{value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: '1.25rem', marginBottom: '1.5rem' }}>
+
+        {/* Revenue over time */}
+        <div className="card" style={{ overflow: 'hidden' }}>
           <div className="card-header">
-            <div className="flex items-center gap-2.5">
-              <BarChart2 size={16} className="text-blue-500" />
-              <span className="card-header-title">Sales Summary</span>
-            </div>
+            <span className="card-header-title">Revenue Over Time</span>
           </div>
-          <div className="card-body flex flex-col flex-1" style={{ gap: '1.25rem' }}>
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="label">From</label>
-              <input type="date" className="input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-            </div>
-            <div className="flex-1">
-              <label className="label">To</label>
-              <input type="date" className="input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-            </div>
-          </div>
-
-          {ssLoading ? (
-            <div className="flex items-center justify-center h-24">
-              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : salesSummary ? (
-            <div className="space-y-3 flex-1">
-              <div className="rounded-xl p-4 flex items-center justify-between bg-slate-50 border border-slate-100">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Transactions</p>
-                <p className="text-2xl font-bold text-slate-900">{salesSummary.total_transactions}</p>
+          <div style={{ padding: '1.5rem 1.25rem 1.25rem' }}>
+            {summaryLoading ? (
+              <div style={{ height: 190, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="spinner" />
               </div>
-              <div className="rounded-xl p-4 flex items-center justify-between bg-emerald-50 border border-emerald-100">
-                <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Total Revenue</p>
-                <p className="text-2xl font-bold text-emerald-700">
-                  GH₵ {Number(salesSummary.total_revenue).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
+            ) : trendData.length === 0 ? (
+              <div style={{ height: 190, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
+                <TrendingUp size={28} strokeWidth={1.3} />
+                <p style={{ fontSize: '0.845rem', marginTop: '0.75rem' }}>No data for this period</p>
               </div>
-              {!dateFrom && !dateTo && (
-                <p className="text-xs text-slate-400 text-center pt-1">Showing all-time totals. Use filters above to narrow by date range.</p>
-              )}
-            </div>
-          ) : null}
+            ) : (
+              <ResponsiveContainer width="100%" height={190}>
+                <AreaChart data={trendData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%"   stopColor="#00d4aa" stopOpacity={0.22} />
+                      <stop offset="100%" stopColor="#00d4aa" stopOpacity={0}    />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--text-3)' }} axisLine={false} tickLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: 'var(--text-3)' }}
+                    axisLine={false} tickLine={false} width={60}
+                    tickFormatter={v => `GH₵${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`}
+                  />
+                  <Tooltip content={<SummaryTip />} cursor={{ stroke: 'var(--border-2)', strokeWidth: 1.5 }} />
+                  <Area
+                    type="monotone" dataKey="revenue"
+                    stroke="#00d4aa" strokeWidth={2}
+                    fill="url(#revGrad)" dot={false}
+                    activeDot={{ r: 4, fill: '#00d4aa', stroke: 'var(--bg-3)', strokeWidth: 2 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
+
+        {/* Top inventory value */}
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div className="card-header">
+            <span className="card-header-title">Top Inventory Value</span>
+            <span className="badge badge-blue mono" style={{ fontSize: '0.7rem' }}>
+              GH₵ {totalInventoryValue.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+          <div style={{ padding: '1.5rem 1.25rem 1.25rem' }}>
+            {valueLoading ? (
+              <div style={{ height: 190, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="spinner" />
+              </div>
+            ) : topByValue.length === 0 ? (
+              <div style={{ height: 190, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
+                <Package size={28} strokeWidth={1.3} />
+                <p style={{ fontSize: '0.845rem', marginTop: '0.75rem' }}>No inventory data</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={190}>
+                <BarChart data={topByValue} layout="vertical" margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="valGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%"   stopColor="#3b8bff" />
+                      <stop offset="100%" stopColor="#00d4aa" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 10, fill: 'var(--text-3)' }}
+                    axisLine={false} tickLine={false}
+                    tickFormatter={v => `GH₵${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`}
+                  />
+                  <YAxis
+                    type="category" dataKey="name" width={90}
+                    tick={{ fontSize: 10, fill: 'var(--text-2)' }}
+                    axisLine={false} tickLine={false}
+                    tickFormatter={v => v.length > 12 ? v.slice(0, 12) + '…' : v}
+                  />
+                  <Tooltip content={<ValueTip />} cursor={{ fill: 'var(--surface)' }} />
+                  <Bar dataKey="total_value" fill="url(#valGrad)" radius={[0, 6, 6, 0]} maxBarSize={18} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Full inventory value table */}
+      <div className="card" style={{ overflow: 'hidden' }}>
+        <div className="card-header">
+          <span className="card-header-title">Full Inventory Value</span>
+          <span className="badge badge-teal mono">
+            GH₵ {totalInventoryValue.toLocaleString('en', { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+        {valueLoading ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 140 }}>
+            <div className="spinner" />
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Product</th><th>SKU</th><th>Category</th>
+                  <th>In Stock</th><th>Cost Price</th><th>Total Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockValue.map(p => (
+                  <tr key={p.id}>
+                    <td style={{ fontWeight: 600, color: 'var(--text)' }}>{p.name}</td>
+                    <td>
+                      <span className="mono" style={{ fontSize: '0.775rem', color: 'var(--text-3)' }}>{p.sku}</span>
+                    </td>
+                    <td>
+                      {p.category_name
+                        ? <span className="badge badge-blue">{p.category_name}</span>
+                        : <span style={{ color: 'var(--text-3)', fontStyle: 'italic', fontSize: '0.78rem' }}>None</span>}
+                    </td>
+                    <td className="mono" style={{ color: p.stock_quantity === 0 ? 'var(--red)' : 'var(--text)' }}>
+                      {p.stock_quantity}
+                    </td>
+                    <td className="mono" style={{ fontSize: '0.825rem' }}>
+                      GH₵ {Number(p.cost_price).toFixed(2)}
+                    </td>
+                    <td className="mono" style={{ fontWeight: 700, color: 'var(--teal)' }}>
+                      GH₵ {Number(p.total_value || 0).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+                {stockValue.length === 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-3)', fontSize: '0.875rem' }}>
+                      No inventory data.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

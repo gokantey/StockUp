@@ -1,3 +1,4 @@
+import logging
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import generics, permissions, status
@@ -6,26 +7,29 @@ from rest_framework.views import APIView
 from .models import Sale, SaleItem
 from .serializers import SaleSerializer, CreateSaleSerializer
 from inventory.models import Product, StockMovement
+from accounts.views import IsAdmin
+
+logger = logging.getLogger('stockup')
 
 
 class SaleListView(generics.ListAPIView):
-    serializer_class = SaleSerializer
+    serializer_class   = SaleSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         qs = Sale.objects.prefetch_related('items__product').select_related('created_by')
         date_from = self.request.query_params.get('date_from')
-        date_to = self.request.query_params.get('date_to')
+        date_to   = self.request.query_params.get('date_to')
         if date_from:
             qs = qs.filter(created_at__date__gte=date_from)
         if date_to:
             qs = qs.filter(created_at__date__lte=date_to)
-        return qs
+        return qs.order_by('-created_at')
 
 
 class SaleDetailView(generics.RetrieveAPIView):
-    queryset = Sale.objects.prefetch_related('items__product').select_related('created_by')
-    serializer_class = SaleSerializer
+    queryset           = Sale.objects.prefetch_related('items__product').select_related('created_by')
+    serializer_class   = SaleSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
@@ -38,10 +42,11 @@ class CreateSaleView(APIView):
         serializer.is_valid(raise_exception=True)
 
         data = serializer.validated_data
-        sale = Sale.objects.create(created_by=request.user, note=data.get('note', ''))
+        note = str(data.get('note', '')).strip()[:500]
+        sale = Sale.objects.create(created_by=request.user, note=note)
 
         for item_data in data['items']:
-            product = item_data['product']
+            product  = item_data['product']
             quantity = item_data['quantity']
 
             SaleItem.objects.create(
@@ -62,28 +67,35 @@ class CreateSaleView(APIView):
             )
 
         sale.refresh_from_db()
+        logger.info(
+            'Sale #%s created by user pk=%s — %d items, total=%s',
+            sale.id, request.user.pk, len(data['items']), sale.total,
+        )
         return Response(SaleSerializer(sale).data, status=status.HTTP_201_CREATED)
 
 
 class VoidSaleView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdmin]
 
     @transaction.atomic
     def post(self, request, pk):
-        if request.user.role != 'admin':
-            return Response({'detail': 'Only admins can void sales.'}, status=status.HTTP_403_FORBIDDEN)
-
         try:
             sale = Sale.objects.prefetch_related('items__product').get(pk=pk)
         except Sale.DoesNotExist:
             return Response({'detail': 'Sale not found.'}, status=status.HTTP_404_NOT_FOUND)
 
         if sale.is_voided:
-            return Response({'detail': 'This sale has already been voided.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'This sale has already been voided.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        void_reason = request.data.get('void_reason', '').strip()
+        void_reason = str(request.data.get('void_reason', '')).strip()[:500]
         if not void_reason:
-            return Response({'detail': 'A reason is required to void a sale.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'A reason is required to void a sale.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         for item in sale.items.all():
             Product.objects.filter(pk=item.product.pk).update(
@@ -97,10 +109,14 @@ class VoidSaleView(APIView):
                 note=f'Void of Sale #{sale.id}: {void_reason}',
             )
 
-        sale.is_voided = True
+        sale.is_voided   = True
         sale.void_reason = void_reason
-        sale.voided_by = request.user
-        sale.voided_at = timezone.now()
+        sale.voided_by   = request.user
+        sale.voided_at   = timezone.now()
         sale.save()
 
+        logger.info(
+            'Sale #%s voided by admin pk=%s. Reason: %s',
+            sale.id, request.user.pk, void_reason,
+        )
         return Response(SaleSerializer(sale).data)
