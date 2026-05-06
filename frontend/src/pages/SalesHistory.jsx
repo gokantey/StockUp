@@ -1,143 +1,172 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Receipt, Download, Search, X } from 'lucide-react'
+import { Receipt, Download, Search, X, TrendingUp } from 'lucide-react'
 import api from '../api/axios'
 import { downloadCsv } from '../utils/exportCsv'
+import Pagination from '../components/Pagination'
+
+const PAGE_SIZE = 25
 
 export default function SalesHistory() {
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
-  const [search, setSearch] = useState('')
+  const [dateFrom,  setDateFrom]  = useState('')
+  const [dateTo,    setDateTo]    = useState('')
+  const [search,    setSearch]    = useState('')
+  const [voided,    setVoided]    = useState('')
+  const [page,      setPage]      = useState(1)
   const [exporting, setExporting] = useState(false)
+
+  const resetPage = useCallback(() => setPage(1), [])
+
+  const buildParams = () => {
+    const p = new URLSearchParams()
+    p.set('page',      page)
+    p.set('page_size', PAGE_SIZE)
+    if (dateFrom) p.set('date_from', dateFrom)
+    if (dateTo)   p.set('date_to',   dateTo)
+    if (search)   p.set('search',    search)
+    if (voided)   p.set('is_voided', voided)
+    return p.toString()
+  }
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['sales', dateFrom, dateTo, search, voided, page],
+    queryFn:  () => api.get(`/sales/?${buildParams()}`).then(r => r.data),
+    keepPreviousData: true,
+  })
+
+  const sales      = data?.results    ?? []
+  const totalPages = data?.total_pages ?? 1
+  const totalCount = data?.count       ?? 0
 
   const handleExport = async () => {
     setExporting(true)
     try {
       const p = new URLSearchParams()
       if (dateFrom) p.append('date_from', dateFrom)
-      if (dateTo) p.append('date_to', dateTo)
+      if (dateTo)   p.append('date_to',   dateTo)
       await downloadCsv(`/api/sales/export/?${p}`, 'sales_export.csv')
-    } finally {
-      setExporting(false)
-    }
+    } finally { setExporting(false) }
   }
 
-  const { data: sales = [], isLoading } = useQuery({
-    queryKey: ['sales', dateFrom, dateTo],
-    queryFn: () => {
-      const p = new URLSearchParams()
-      if (dateFrom) p.append('date_from', dateFrom)
-      if (dateTo) p.append('date_to', dateTo)
-      return api.get(`/sales/?${p}`).then((r) => r.data)
-    },
-  })
-
-  const filtered = sales.filter((s) => {
-    if (!search.trim()) return true
-    const q = search.trim().toLowerCase()
-    return (
-      String(s.id).padStart(4, '0').includes(q) ||
-      (s.created_by_name ?? '').toLowerCase().includes(q) ||
-      (s.note ?? '').toLowerCase().includes(q) ||
-      s.items.some((item) =>
-        (item.product_name ?? '').toLowerCase().includes(q) ||
-        (item.product_sku ?? '').toLowerCase().includes(q)
-      )
-    )
-  })
-
-  const totalRevenue = filtered.filter((s) => !s.is_voided).reduce((sum, s) => sum + Number(s.total), 0)
+  const handleSearch   = (val) => { setSearch(val);   resetPage() }
+  const handleDateFrom = (val) => { setDateFrom(val); resetPage() }
+  const handleDateTo   = (val) => { setDateTo(val);   resetPage() }
+  const handleVoided   = (val) => { setVoided(val);   resetPage() }
+  const clearAll = () => { setDateFrom(''); setDateTo(''); setSearch(''); setVoided(''); resetPage() }
+  const hasFilters = dateFrom || dateTo || search || voided
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Sales History</h1>
-        <button onClick={handleExport} disabled={exporting || sales.length === 0} className="btn btn-ghost">
-          <Download size={15} /> {exporting ? 'Exporting…' : 'Export CSV'}
+        <div>
+          <h1 className="page-title">Sales History</h1>
+          <p className="page-subtitle">{totalCount} transaction{totalCount !== 1 ? 's' : ''}</p>
+        </div>
+        <button onClick={handleExport} disabled={exporting || totalCount === 0} className="btn btn-ghost">
+          <Download size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
         </button>
       </div>
 
-      {/* Filter card */}
-      <div className="card" style={{ padding: '1.5rem 2rem', marginBottom: '1.5rem' }}>
-        <div className="flex flex-wrap items-end gap-4">
-          {/* Search */}
+      <div className="card" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '0.875rem' }}>
+
           <div style={{ flex: '1 1 220px' }}>
             <label className="label">Search</label>
             <div style={{ position: 'relative' }}>
-              <Search size={14} style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+              <Search size={13} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
               <input
-                className="input" style={{ paddingLeft: '2.5rem', paddingRight: search ? '2.5rem' : '1rem' }}
-                placeholder="Receipt #, product, SKU, staff, note…"
-                value={search} onChange={(e) => setSearch(e.target.value)}
+                className="input"
+                style={{ paddingLeft: '2.375rem', paddingRight: search ? '2.375rem' : '1rem' }}
+                placeholder="Receipt #, product, staff…"
+                value={search}
+                onChange={e => handleSearch(e.target.value)}
               />
               {search && (
-                <button onClick={() => setSearch('')} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex' }}>
-                  <X size={14} />
+                <button onClick={() => handleSearch('')} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}>
+                  <X size={13} />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Date range */}
           <div>
             <label className="label">From</label>
-            <input type="date" className="input" style={{ width: 160 }} value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">To</label>
-            <input type="date" className="input" style={{ width: 160 }} value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <input type="date" className="input" style={{ width: 158 }} value={dateFrom} onChange={e => handleDateFrom(e.target.value)} />
           </div>
 
-          {(dateFrom || dateTo || search) && (
-            <button onClick={() => { setDateFrom(''); setDateTo(''); setSearch('') }} className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-end' }}>
-              Clear all
+          <div>
+            <label className="label">To</label>
+            <input type="date" className="input" style={{ width: 158 }} value={dateTo} onChange={e => handleDateTo(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="label">Status</label>
+            <select className="input" style={{ width: 140 }} value={voided} onChange={e => handleVoided(e.target.value)}>
+              <option value="">All</option>
+              <option value="false">Completed</option>
+              <option value="true">Voided</option>
+            </select>
+          </div>
+
+          {hasFilters && (
+            <button onClick={clearAll} className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-end' }}>
+              Clear
             </button>
           )}
 
-          {filtered.length > 0 && (
-            <div className="ml-auto text-right" style={{ alignSelf: 'flex-end' }}>
-              <p className="text-xs text-slate-400 mb-0.5">{filtered.length} transaction{filtered.length > 1 ? 's' : ''}</p>
-              <p className="text-lg font-bold text-slate-900">GH₵ {totalRevenue.toFixed(2)}</p>
+          {totalCount > 0 && (
+            <div style={{ marginLeft: 'auto', textAlign: 'right', alignSelf: 'flex-end' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', marginBottom: '0.15rem' }}>
+                <TrendingUp size={12} style={{ color: 'var(--teal)' }} />
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+                  {totalCount} result{totalCount !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>Page {page} of {totalPages}</p>
             </div>
           )}
         </div>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card" style={{ overflow: 'hidden' }}>
         {isLoading ? (
-          <div className="flex items-center justify-center" style={{ height: 160 }}>
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160 }}>
+            <div className="spinner" />
           </div>
         ) : (
           <table className="table">
             <thead>
-              <tr><th>Receipt #</th><th>Date & Time</th><th>Items</th><th>Total</th><th>Staff</th><th></th></tr>
+              <tr><th>Receipt</th><th>Date & Time</th><th>Items</th><th>Total</th><th>Staff</th><th>Status</th><th></th></tr>
             </thead>
             <tbody>
-              {filtered.map((s) => (
-                <tr key={s.id} style={{ opacity: s.is_voided ? 0.55 : 1 }}>
-                  <td className="font-mono text-slate-400 text-xs">
-                    #{String(s.id).padStart(4, '0')}
-                    {s.is_voided && <span className="badge badge-red" style={{ marginLeft: '0.5rem' }}>Voided</span>}
-                  </td>
-                  <td className="text-slate-700">{new Date(s.created_at).toLocaleString()}</td>
-                  <td className="text-slate-500">{s.items.length} item{s.items.length > 1 ? 's' : ''}</td>
-                  <td className="font-semibold" style={{ textDecoration: s.is_voided ? 'line-through' : 'none', color: s.is_voided ? '#94a3b8' : '#0f172a' }}>
+              {sales.map(s => (
+                <tr key={s.id} style={{ opacity: s.is_voided ? 0.5 : 1 }}>
+                  <td><span className="mono" style={{ fontSize: '0.8rem', color: 'var(--text-3)' }}>#{String(s.id).padStart(4, '0')}</span></td>
+                  <td style={{ fontSize: '0.845rem' }}>{new Date(s.created_at).toLocaleString()}</td>
+                  <td>{s.items.length} item{s.items.length > 1 ? 's' : ''}</td>
+                  <td className="mono" style={{ fontWeight: 700, color: s.is_voided ? 'var(--text-3)' : 'var(--text)', textDecoration: s.is_voided ? 'line-through' : 'none' }}>
                     GH₵ {Number(s.total).toFixed(2)}
                   </td>
-                  <td className="text-slate-500">{s.created_by_name}</td>
-                  <td><Link to={`/sales/${s.id}`} className="btn btn-ghost btn-sm"><Receipt size={13} /> Receipt</Link></td>
+                  <td>{s.created_by_name}</td>
+                  <td>
+                    {s.is_voided
+                      ? <span className="badge badge-red">Voided</span>
+                      : <span className="badge badge-teal">Complete</span>}
+                  </td>
+                  <td><Link to={`/sales/${s.id}`} className="btn btn-ghost btn-sm"><Receipt size={12} /> View</Link></td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={6} className="text-center text-slate-400 text-sm" style={{ padding: '3rem' }}>
-                  {search ? `No sales matching "${search}".` : 'No sales found.'}
+              {sales.length === 0 && (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-3)', fontSize: '0.875rem' }}>
+                  {hasFilters ? 'No sales match your filters.' : 'No sales recorded yet.'}
                 </td></tr>
               )}
             </tbody>
           </table>
         )}
+
+        <Pagination page={page} totalPages={totalPages} count={totalCount} pageSize={PAGE_SIZE} onPage={setPage} />
       </div>
     </div>
   )

@@ -15,7 +15,7 @@ export default function NewSale() {
 
   const { data: products = [] } = useQuery({
     queryKey: ['products', ''],
-    queryFn: () => api.get('/products/').then((r) => r.data),
+    queryFn: () => api.get('/products/?page_size=1000').then(r => r.data?.results ?? r.data),
   })
 
   const selectedProduct = products.find((p) => p.id === Number(productId))

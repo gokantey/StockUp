@@ -1,11 +1,12 @@
 import logging
 from django.db import transaction
 from django.utils import timezone
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, filters, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Sale, SaleItem
 from .serializers import SaleSerializer, CreateSaleSerializer
+from .filters import SaleFilter
 from inventory.models import Product, StockMovement
 from accounts.views import IsAdmin
 
@@ -15,16 +16,20 @@ logger = logging.getLogger('stockup')
 class SaleListView(generics.ListAPIView):
     serializer_class   = SaleSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filterset_class    = SaleFilter
+    filter_backends    = [filters.SearchFilter]
+    search_fields      = [
+        'id',
+        'note',
+        'created_by__full_name',
+        'items__product__name',
+        'items__product__sku',
+    ]
 
     def get_queryset(self):
-        qs = Sale.objects.prefetch_related('items__product').select_related('created_by')
-        date_from = self.request.query_params.get('date_from')
-        date_to   = self.request.query_params.get('date_to')
-        if date_from:
-            qs = qs.filter(created_at__date__gte=date_from)
-        if date_to:
-            qs = qs.filter(created_at__date__lte=date_to)
-        return qs.order_by('-created_at')
+        return Sale.objects.prefetch_related(
+            'items__product'
+        ).select_related('created_by').order_by('-created_at')
 
 
 class SaleDetailView(generics.RetrieveAPIView):

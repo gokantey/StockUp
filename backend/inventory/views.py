@@ -5,13 +5,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import Category, Product, StockMovement
 from .serializers import CategorySerializer, ProductSerializer, StockMovementSerializer
+from .filters import ProductFilter, StockMovementFilter
 from accounts.views import IsAdmin
 
 logger = logging.getLogger('stockup')
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):
-    queryset = Category.objects.all()
+    queryset         = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
 
     def get_permissions(self):
@@ -21,25 +22,21 @@ class CategoryListCreateView(generics.ListCreateAPIView):
 
 
 class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
+    queryset           = Category.objects.all()
+    serializer_class   = CategorySerializer
     permission_classes = [IsAdmin]
 
 
 class ProductListCreateView(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
-    filter_backends  = [filters.SearchFilter]
+    filterset_class  = ProductFilter
+    filter_backends  = [filters.SearchFilter, filters.OrderingFilter]
     search_fields    = ['name', 'sku', 'category__name']
+    ordering_fields  = ['name', 'stock_quantity', 'selling_price', 'created_at']
+    ordering         = ['name']
 
     def get_queryset(self):
-        show_archived = self.request.query_params.get('archived') == 'true'
-        qs = Product.objects.select_related('category').filter(is_active=not show_archived)
-        category = self.request.query_params.get('category')
-        if category:
-            if not str(category).isdigit():
-                return Product.objects.none()
-            qs = qs.filter(category_id=int(category))
-        return qs
+        return Product.objects.select_related('category').filter(is_active=True)
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -48,8 +45,8 @@ class ProductListCreateView(generics.ListCreateAPIView):
 
 
 class ProductDetailView(generics.RetrieveUpdateAPIView):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
+    queryset           = Product.objects.all()
+    serializer_class   = ProductSerializer
     permission_classes = [IsAdmin]
 
 
@@ -138,25 +135,10 @@ class StockAdjustmentView(APIView):
 class StockMovementListView(generics.ListAPIView):
     serializer_class   = StockMovementSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filterset_class    = StockMovementFilter
+    ordering           = ['-created_at']
 
     def get_queryset(self):
-        qs = StockMovement.objects.select_related('product', 'supplier', 'created_by')
-        product_id    = self.request.query_params.get('product')
-        movement_type = self.request.query_params.get('type')
-        date_from     = self.request.query_params.get('date_from')
-        date_to       = self.request.query_params.get('date_to')
-
-        if product_id:
-            if not str(product_id).isdigit():
-                return StockMovement.objects.none()
-            qs = qs.filter(product_id=int(product_id))
-        if movement_type:
-            allowed_types = [StockMovement.IN, StockMovement.OUT, StockMovement.ADJUST]
-            if movement_type not in allowed_types:
-                return StockMovement.objects.none()
-            qs = qs.filter(movement_type=movement_type)
-        if date_from:
-            qs = qs.filter(created_at__date__gte=date_from)
-        if date_to:
-            qs = qs.filter(created_at__date__lte=date_to)
-        return qs
+        return StockMovement.objects.select_related(
+            'product', 'supplier', 'created_by'
+        ).order_by('-created_at')

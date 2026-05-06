@@ -14,15 +14,15 @@ export default function StockIn() {
   const [success, setSuccess]     = useState(false)
   const [adjSuccess, setAdjSuccess] = useState(false)
 
-  const { data: products = [] } = useQuery({ queryKey: ['products', ''], queryFn: () => api.get('/products/').then((r) => r.data) })
-  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: () => api.get('/suppliers/').then((r) => r.data) })
+ const { data: products = [] } = useQuery({ queryKey: ['products', ''], queryFn: () => api.get('/products/?page_size=1000').then(r => r.data?.results ?? r.data) })
+  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'],queryFn: () => api.get('/suppliers/').then(r => r.data?.results ?? r.data) })
   const { data: history = [], isLoading: historyLoading } = useQuery({
     queryKey: ['stock-movements', 'IN'],
-    queryFn: () => api.get('/stock-movements/?type=IN').then((r) => r.data),
+    queryFn: () => api.get('/stock-movements/?type=IN').then(r => r.data?.results ?? r.data),
   })
   const { data: adjHistory = [], isLoading: adjHistoryLoading } = useQuery({
     queryKey: ['stock-movements', 'ADJ'],
-    queryFn: () => api.get('/stock-movements/?type=ADJ').then((r) => r.data),
+    queryFn: () => api.get('/stock-movements/?type=ADJ').then(r => r.data?.results ?? r.data),
   })
 
   const set    = (k, v) => setForm((f) => ({ ...f, [k]: v }))

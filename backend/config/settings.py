@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     # third-party
     'rest_framework',
     'corsheaders',
+    'django_filters',
     # local apps
     'accounts',
     'inventory',
@@ -93,7 +94,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'config.pagination.StandardPagination',
+    'PAGE_SIZE': 25,
     'EXCEPTION_HANDLER': 'config.exception_handler.custom_exception_handler',
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
@@ -108,21 +116,21 @@ REST_FRAMEWORK = {
 
 # ─── JWT ──────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME':     timedelta(minutes=15),
-    'REFRESH_TOKEN_LIFETIME':    timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS':     True,
-    'BLACKLIST_AFTER_ROTATION':  True,
-    'UPDATE_LAST_LOGIN':         True,
-    'ALGORITHM':                 'HS256',
-    'AUTH_HEADER_TYPES':         ('Bearer',),
+    'ACCESS_TOKEN_LIFETIME':    timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME':   timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS':    True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN':        True,
+    'ALGORITHM':                'HS256',
+    'AUTH_HEADER_TYPES':        ('Bearer',),
 }
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 _frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:5173').rstrip('/')
-CORS_ALLOWED_ORIGINS  = [_frontend_url]
+CORS_ALLOWED_ORIGINS   = [_frontend_url]
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
-CORS_ALLOW_HEADERS = [
+CORS_ALLOW_METHODS     = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
+CORS_ALLOW_HEADERS     = [
     'accept', 'authorization', 'content-type', 'origin', 'x-requested-with',
 ]
 
