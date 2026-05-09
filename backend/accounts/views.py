@@ -83,14 +83,12 @@ class PasswordResetRequestView(APIView):
                 {'detail': 'Email is required.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
         try:
             user = User.objects.get(email=email, is_active=True)
             token = default_token_generator.make_token(user)
             uid   = urlsafe_base64_encode(force_bytes(user.pk))
             frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
             reset_link   = f'{frontend_url}/reset-password/{uid}/{token}/'
-
             send_mail(
                 subject='StockUp — Password Reset',
                 message=(
@@ -161,7 +159,7 @@ class PasswordResetConfirmView(APIView):
 # ─── User management ──────────────────────────────────────────────────────────
 
 class UserListCreateView(generics.ListCreateAPIView):
-    queryset = User.objects.all().order_by('full_name')
+    queryset           = User.objects.all().order_by('full_name')
     permission_classes = [IsAdmin]
 
     def get_serializer_class(self):
@@ -173,7 +171,7 @@ class UserListCreateView(generics.ListCreateAPIView):
 
 
 class UserDetailView(generics.RetrieveUpdateAPIView):
-    queryset = User.objects.all()
+    queryset           = User.objects.all()
     permission_classes = [IsAdmin]
 
     def get_serializer_class(self):
@@ -190,3 +188,78 @@ class MeView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+# ─── Admin resets a specific user's password ──────────────────────────────────
+
+class AdminResetPasswordView(APIView):
+    """
+    Admin sets a new password for any user directly.
+    No email needed — admin communicates credentials manually.
+    POST /users/<pk>/reset-password/  { new_password }
+    """
+    permission_classes = [IsAdmin]
+
+    def post(self, request, pk):
+        new_password = str(request.data.get('new_password', '')).strip()
+
+        if not new_password:
+            return Response(
+                {'detail': 'new_password is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(new_password) < 8:
+            return Response(
+                {'detail': 'Password must be at least 8 characters.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        user.set_password(new_password)
+        user.save()
+        logger.info(
+            'Admin pk=%s reset password for user pk=%s (%s)',
+            request.user.pk, user.pk, user.email,
+        )
+        return Response({'detail': f"Password updated for {user.full_name}."})
+
+
+# ─── Logged-in user changes their own password ────────────────────────────────
+
+class ChangeMyPasswordView(APIView):
+    """
+    Any authenticated user can change their own password.
+    Requires current password to confirm identity.
+    POST /users/me/change-password/  { current_password, new_password }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        current_password = str(request.data.get('current_password', '')).strip()
+        new_password     = str(request.data.get('new_password', '')).strip()
+
+        if not current_password or not new_password:
+            return Response(
+                {'detail': 'current_password and new_password are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(new_password) < 8:
+            return Response(
+                {'detail': 'New password must be at least 8 characters.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not request.user.check_password(current_password):
+            logger.warning('Failed change-password attempt for user pk=%s', request.user.pk)
+            return Response(
+                {'detail': 'Current password is incorrect.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        request.user.set_password(new_password)
+        request.user.save()
+        logger.info('User pk=%s changed their own password', request.user.pk)
+        return Response({'detail': 'Password changed successfully.'})

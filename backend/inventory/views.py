@@ -30,13 +30,15 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 class ProductListCreateView(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
     filterset_class  = ProductFilter
-    filter_backends  = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields    = ['name', 'sku', 'category__name']
-    ordering_fields  = ['name', 'stock_quantity', 'selling_price', 'created_at']
-    ordering         = ['name']
+    # Do NOT override filter_backends — let it inherit the global setting
+    # which includes DjangoFilterBackend + SearchFilter + OrderingFilter
+    search_fields   = ['name', 'sku', 'category__name']
+    ordering_fields = ['name', 'stock_quantity', 'selling_price', 'created_at']
+    ordering        = ['name']
 
     def get_queryset(self):
-        return Product.objects.select_related('category').filter(is_active=True)
+        # Return ALL products — ProductFilter.qs property handles is_active default
+        return Product.objects.select_related('category')
 
     def get_permissions(self):
         if self.request.method == 'POST':

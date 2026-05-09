@@ -13,6 +13,7 @@ import LowStock from './pages/LowStock'
 import Reports from './pages/Reports'
 import Suppliers from './pages/Suppliers'
 import Users from './pages/Users'
+import Account from './pages/Account'
 
 const qc = new QueryClient()
 
@@ -37,6 +38,7 @@ function AppRoutes() {
                 <Route path="/suppliers" element={<ProtectedRoute adminOnly><Suppliers /></ProtectedRoute>} />
                 <Route path="/users" element={<ProtectedRoute adminOnly><Users /></ProtectedRoute>} />
                 <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
               </Routes>
             </Layout>
           </ProtectedRoute>
