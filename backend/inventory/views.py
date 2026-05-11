@@ -1,10 +1,11 @@
 import logging
 from django.db import transaction
-from rest_framework import generics, permissions, filters, status
+from rest_framework import generics, permissions, filters, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import Category, Product, StockMovement
-from .serializers import CategorySerializer, ProductSerializer, StockMovementSerializer
+from .models import Category, Product, StockMovement, PurchaseOrder, PurchaseOrderItem
+from .serializers import CategorySerializer, ProductSerializer, StockMovementSerializer, PurchaseOrderSerializer
 from .filters import ProductFilter, StockMovementFilter
 from accounts.views import IsAdmin
 
@@ -144,3 +145,87 @@ class StockMovementListView(generics.ListAPIView):
         return StockMovement.objects.select_related(
             'product', 'supplier', 'created_by'
         ).order_by('-created_at')
+
+
+class PurchaseOrderViewSet(viewsets.ModelViewSet):
+    queryset = PurchaseOrder.objects.prefetch_related('items__product', 'supplier', 'created_by').order_by('-created_at')
+    serializer_class = PurchaseOrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+    @transaction.atomic
+    @action(detail=True, methods=['post'])
+    def receive(self, request, pk=None):
+        po = self.get_object()
+        if po.status in ['received', 'cancelled']:
+            return Response({'detail': f'Cannot receive items for a PO in {po.status} status.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        items_data = request.data.get('items', [])
+        if not items_data:
+            return Response({'detail': 'Items data is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        po_items = {item.id: item for item in po.items.all()}
+        
+        all_fully_received = True
+
+        for item_data in items_data:
+            item_id = item_data.get('id')
+            received_qty_now = item_data.get('received_qty_now', 0)
+            
+            try:
+                received_qty_now = int(received_qty_now)
+                if received_qty_now < 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                return Response({'detail': 'received_qty_now must be a non-negative integer.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+            if received_qty_now > 0 and item_id in po_items:
+                item = po_items[item_id]
+                item.received_qty += received_qty_now
+                item.save(update_fields=['received_qty'])
+                
+                # Update product stock
+                product = item.product
+                product.stock_quantity += received_qty_now
+                product.save(update_fields=['stock_quantity'])
+                
+                # Create StockMovement
+                StockMovement.objects.create(
+                    product=product,
+                    movement_type=StockMovement.IN,
+                    quantity=received_qty_now,
+                    unit_cost=item.unit_cost,
+                    supplier=po.supplier,
+                    created_by=request.user,
+                    note=f'PO Reception: {po.po_number}'
+                )
+
+        # Re-evaluate status
+        for item in po.items.all():
+            if item.received_qty < item.ordered_qty:
+                all_fully_received = False
+                break
+                
+        received_something = any(item.received_qty > 0 for item in po.items.all())
+        
+        if all_fully_received:
+            po.status = 'received'
+        elif received_something:
+            po.status = 'partially_received'
+            
+        po.save(update_fields=['status'])
+        
+        logger.info(f'PO Received: {po.po_number} by user pk={request.user.pk}')
+        return Response(PurchaseOrderSerializer(po).data)
+
+    @action(detail=True, methods=['post'])
+    def cancel(self, request, pk=None):
+        po = self.get_object()
+        if po.status in ['received', 'partially_received']:
+            return Response({'detail': 'Cannot cancel a PO that has already been partially or fully received.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        po.status = 'cancelled'
+        po.save(update_fields=['status'])
+        return Response(PurchaseOrderSerializer(po).data)

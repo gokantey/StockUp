@@ -19,14 +19,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setError(''); setLoading(true)
+    e.preventDefault()
+    e.stopPropagation()
+    setError('')
+    setLoading(true)
     try {
       const { data: tokens } = await api.post('/auth/login/', form)
       const { data: user }   = await api.get('/users/me/', { headers: { Authorization: `Bearer ${tokens.access}` } })
-      login(tokens, user); navigate('/')
+      login(tokens, user)
+      navigate('/')
     } catch {
+      setLoading(false)
       setError('Invalid email or password.')
-    } finally { setLoading(false) }
+    }
   }
 
   return (
@@ -88,31 +93,54 @@ export default function Login() {
             <p style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>Sign in to your account to continue.</p>
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
             <div>
               <label className="label">Email address</label>
-              <input type="email" required autoFocus className="input" placeholder="admin@yourshop.com"
-                value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+              <input
+                type="email" required autoFocus className="input"
+                placeholder="admin@yourshop.com"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+              />
             </div>
 
             <div>
               <label className="label">Password</label>
               <div style={{ position: 'relative' }}>
-                <input type={showPw ? 'text' : 'password'} required className="input" style={{ paddingRight: '2.75rem' }} placeholder="••••••••"
-                  value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+                <input
+                  type={showPw ? 'text' : 'password'} required className="input"
+                  style={{ paddingRight: '2.75rem' }} placeholder="••••••••"
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                />
                 <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}>
                   {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
               </div>
             </div>
 
+            {/* Error — always rendered, height animates in */}
             {error && (
-              <div style={{ background: 'var(--red-light)', border: '1px solid #f8b4b4', borderRadius: '8px', padding: '0.7rem 0.875rem', fontSize: '0.845rem', color: 'var(--red)' }}>
+              <div style={{
+                background: 'var(--red-light)',
+                border: '1px solid #f8b4b4',
+                borderLeft: '3px solid var(--red)',
+                borderRadius: '8px',
+                padding: '0.75rem 0.875rem',
+                fontSize: '0.845rem',
+                color: 'var(--red)',
+                fontWeight: 500,
+              }}>
                 {error}
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', padding: '0.75rem', fontSize: '0.9375rem', marginTop: '0.25rem' }}>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '0.75rem', fontSize: '0.9375rem', marginTop: '0.25rem' }}
+            >
               {loading
                 ? <><span className="spinner" style={{ width: 16, height: 16, borderTopColor: '#fff', borderColor: 'rgba(255,255,255,0.3)' }} /> Signing in…</>
                 : <><span>Sign In</span><ArrowRight size={16} /></>

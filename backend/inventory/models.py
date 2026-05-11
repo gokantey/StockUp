@@ -66,3 +66,44 @@ class StockMovement(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class PurchaseOrder(models.Model):
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('ordered', 'Ordered'),
+        ('partially_received', 'Partially Received'),
+        ('received', 'Received'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    po_number = models.CharField(max_length=20, unique=True, editable=False)
+    supplier = models.ForeignKey('suppliers.Supplier', on_delete=models.SET_NULL, null=True, blank=True, related_name='purchase_orders')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    expected_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_purchase_orders')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.po_number:
+            self.po_number = 'PO-' + uuid.uuid4().hex[:8].upper()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.po_number
+
+    class Meta:
+        ordering = ['-created_at']
+
+
+class PurchaseOrderItem(models.Model):
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='po_items')
+    ordered_qty = models.PositiveIntegerField()
+    received_qty = models.PositiveIntegerField(default=0)
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.ordered_qty} x {self.product.name} (PO: {self.purchase_order.po_number})"

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Product, StockMovement
+from .models import Category, Product, StockMovement, PurchaseOrder, PurchaseOrderItem
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -76,3 +76,35 @@ class StockMovementSerializer(serializers.ModelSerializer):
 
     def validate_note(self, value):
         return value.strip()[:500] if value else value
+
+
+class PurchaseOrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    product_sku = serializers.CharField(source='product.sku', read_only=True)
+
+    class Meta:
+        model = PurchaseOrderItem
+        fields = ['id', 'product', 'product_name', 'product_sku', 'ordered_qty', 'received_qty', 'unit_cost']
+        read_only_fields = ['id', 'received_qty']
+
+
+class PurchaseOrderSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.full_name', read_only=True, default='')
+    items = PurchaseOrderItemSerializer(many=True)
+
+    class Meta:
+        model = PurchaseOrder
+        fields = [
+            'id', 'po_number', 'supplier', 'supplier_name', 'status',
+            'expected_date', 'notes', 'created_by', 'created_by_name',
+            'created_at', 'updated_at', 'items'
+        ]
+        read_only_fields = ['id', 'po_number', 'created_by', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items', [])
+        po = PurchaseOrder.objects.create(**validated_data)
+        for item_data in items_data:
+            PurchaseOrderItem.objects.create(purchase_order=po, **item_data)
+        return po

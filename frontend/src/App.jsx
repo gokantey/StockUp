@@ -12,6 +12,7 @@ import SaleReceipt from './pages/SaleReceipt'
 import LowStock from './pages/LowStock'
 import Reports from './pages/Reports'
 import Suppliers from './pages/Suppliers'
+import PurchaseOrders from './pages/PurchaseOrders'
 import Users from './pages/Users'
 import Account from './pages/Account'
 
@@ -30,6 +31,7 @@ function AppRoutes() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/stock-in" element={<StockIn />} />
+                <Route path="/purchase-orders" element={<PurchaseOrders />} />
                 <Route path="/sales/new" element={<NewSale />} />
                 <Route path="/sales" element={<SalesHistory />} />
                 <Route path="/sales/:id" element={<SaleReceipt />} />

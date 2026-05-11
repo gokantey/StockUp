@@ -3,8 +3,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ArrowUpCircle, ShoppingCart,
   ClipboardList, AlertTriangle, BarChart2, Truck, Users,
-  LogOut, Eye, EyeOff, KeyRound, X, CheckCircle, UserCircle,
-  ChevronRight,
+  LogOut, Eye, EyeOff, X, CheckCircle, UserCircle,
+  ChevronRight, FileText
 } from 'lucide-react'
 import api from '../api/axios'
 import useAuthStore from '../store/authStore'
@@ -13,6 +13,7 @@ const nav = [
   { to: '/',          label: 'Dashboard',     Icon: LayoutDashboard, end: true },
   { to: '/products',  label: 'Products',      Icon: Package },
   { to: '/stock-in',  label: 'Stock In',      Icon: ArrowUpCircle },
+  { to: '/purchase-orders', label: 'Purchase Orders', Icon: FileText },
   { to: '/sales/new', label: 'New Sale',      Icon: ShoppingCart,   end: true },
   { to: '/sales',     label: 'Sales History', Icon: ClipboardList,  end: true },
   { to: '/low-stock', label: 'Low Stock',     Icon: AlertTriangle },
@@ -184,16 +185,7 @@ export default function Layout({ children }) {
         </nav>
 
         <div style={{ borderTop: '1px solid var(--navy-border)', padding: '0.875rem' }}>
-          <button onClick={() => setShowChangePw(true)} style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
-            padding: '0.575rem 0.875rem', borderRadius: '9px', marginBottom: '0.25rem',
-            fontSize: '0.82rem', fontWeight: 400, color: 'var(--navy-muted)',
-            background: 'none', border: 'none', cursor: 'pointer', transition: 'all 0.14s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--navy-hover)'; e.currentTarget.style.color = 'rgba(255,255,255,0.75)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--navy-muted)' }}>
-            <KeyRound size={15} strokeWidth={1.8} /> Change Password
-          </button>
+          
           <button onClick={() => { logout(); navigate('/login') }} style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: '0.75rem',
             padding: '0.575rem 0.875rem', borderRadius: '9px',
