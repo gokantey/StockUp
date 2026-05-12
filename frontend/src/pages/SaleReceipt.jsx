@@ -105,8 +105,8 @@ export default function SaleReceipt() {
               <tr key={item.id} className="border-b border-slate-50">
                 <td className="py-2.5 text-slate-800">{item.product_name}</td>
                 <td className="py-2.5 text-center text-slate-600">{item.quantity}</td>
-                <td className="py-2.5 text-right text-slate-600">GH₵ {item.unit_price_at_sale}</td>
-                <td className="py-2.5 text-right font-semibold text-slate-800">GH₵ {Number(item.line_total).toFixed(2)}</td>
+                <td className="py-2.5 text-right text-slate-600">GHS {item.unit_price_at_sale}</td>
+                <td className="py-2.5 text-right font-semibold text-slate-800">GHS {Number(item.line_total).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
@@ -121,7 +121,7 @@ export default function SaleReceipt() {
         }}>
           <span className="font-semibold text-slate-700">Total</span>
           <span style={{ fontSize: '1.5rem', fontWeight: 800, color: sale.is_voided ? '#94a3b8' : '#0f172a', textDecoration: sale.is_voided ? 'line-through' : 'none' }}>
-            GH₵ {Number(sale.total).toFixed(2)}
+            GHS {Number(sale.total).toFixed(2)}
           </span>
         </div>
 

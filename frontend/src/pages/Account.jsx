@@ -174,12 +174,12 @@ export default function Account() {
               <div className="grid grid-cols-2" style={{ gap: '0.875rem' }}>
                 <StatTile
                   label="Total Revenue"
-                  value={stats ? `GH₵ ${Number(stats.total_revenue).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                  value={stats ? `GHS ${Number(stats.total_revenue).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                   Icon={TrendingUp} color="var(--green)" bg="var(--green-light)"
                 />
                 <StatTile
                   label="Today's Revenue"
-                  value={stats ? `GH₵ ${Number(stats.today_revenue).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                  value={stats ? `GHS ${Number(stats.today_revenue).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                   Icon={TrendingUp} color="var(--amber)" bg="var(--amber-light)"
                 />
               </div>
@@ -220,7 +220,7 @@ export default function Account() {
                         </Link>
                       </td>
                       <td style={{ color: 'var(--text-2)', fontSize: '0.845rem' }}>{s.items} item{s.items !== 1 ? 's' : ''}</td>
-                      <td className="mono" style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.875rem' }}>GH₵ {Number(s.total).toFixed(2)}</td>
+                      <td className="mono" style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.875rem' }}>GHS {Number(s.total).toFixed(2)}</td>
                       <td style={{ fontSize: '0.775rem', color: 'var(--text-3)' }}>
                         {new Date(s.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </td>

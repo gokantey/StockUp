@@ -153,8 +153,8 @@ export default function Products() {
                       <span className="mono" style={{ fontWeight: 700, color: p.is_low_stock ? 'var(--red)' : 'var(--text)', fontSize: '0.875rem' }}>{p.stock_quantity}</span>
                       {p.is_low_stock && <span className="badge badge-red" style={{ marginLeft: '0.5rem' }}>Low</span>}
                     </td>
-                    <td className="mono" style={{ fontSize: '0.845rem', color: 'var(--text-2)' }}>GH₵ {Number(p.cost_price).toFixed(2)}</td>
-                    <td className="mono" style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.875rem' }}>GH₵ {Number(p.selling_price).toFixed(2)}</td>
+                    <td className="mono" style={{ fontSize: '0.845rem', color: 'var(--text-2)' }}>GHS {Number(p.cost_price).toFixed(2)}</td>
+                    <td className="mono" style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.875rem' }}>GHS {Number(p.selling_price).toFixed(2)}</td>
                     <td><span className={`badge ${p.is_active ? 'badge-green' : 'badge-gray'}`}>{p.is_active ? 'Active' : 'Archived'}</span></td>
                     {user?.role === 'admin' && (
                       <td>
@@ -217,11 +217,11 @@ export default function Products() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="label">Cost Price (GH₵) *</label>
+                  <label className="label">Cost Price (GHS) *</label>
                   <input required type="number" step="0.01" min="0" className="input" placeholder="0.00" value={form.cost_price} onChange={e => set('cost_price', e.target.value)} />
                 </div>
                 <div>
-                  <label className="label">Selling Price (GH₵) *</label>
+                  <label className="label">Selling Price (GHS) *</label>
                   <input required type="number" step="0.01" min="0" className="input" placeholder="0.00" value={form.selling_price} onChange={e => set('selling_price', e.target.value)} />
                 </div>
               </div>

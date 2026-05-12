@@ -15,7 +15,7 @@ function SummaryTip({ active, payload, label }) {
       <p style={{ color: 'var(--text-3)', fontSize: '0.72rem', marginBottom: '0.35rem' }}>{label}</p>
       {payload.map(p => (
         <p key={p.name} style={{ color: p.color, fontWeight: 700, fontSize: '0.875rem', fontFamily: 'JetBrains Mono, monospace' }}>
-          {p.name === 'revenue' ? `GH₵ ${Number(p.value).toFixed(2)}` : `${p.value} sales`}
+          {p.name === 'revenue' ? `GHS ${Number(p.value).toFixed(2)}` : `${p.value} sales`}
         </p>
       ))}
     </div>
@@ -28,7 +28,7 @@ function ValueTip({ active, payload }) {
   return (
     <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: '10px', padding: '0.75rem 1rem', boxShadow: '0 8px 28px rgba(0,0,0,0.4)' }}>
       <p style={{ color: 'var(--text-3)', fontSize: '0.72rem', marginBottom: '0.3rem' }}>{d?.name}</p>
-      <p style={{ color: 'var(--blue)', fontWeight: 700, fontSize: '0.875rem', fontFamily: 'JetBrains Mono, monospace' }}>GH₵ {Number(d?.total_value).toFixed(2)}</p>
+      <p style={{ color: 'var(--blue)', fontWeight: 700, fontSize: '0.875rem', fontFamily: 'JetBrains Mono, monospace' }}>GHS {Number(d?.total_value).toFixed(2)}</p>
       <p style={{ color: 'var(--text-3)', fontSize: '0.72rem', marginTop: '0.2rem' }}>{d?.stock_quantity} units in stock</p>
     </div>
   )
@@ -78,10 +78,10 @@ export default function Reports() {
   // Only build metric cards when summary is loaded
   const metricCards = summary
     ? [
-        { label: 'Total Revenue',   value: `GH₵ ${Number(summary.total_revenue  || 0).toFixed(2)}`,      color: 'var(--teal)',   Icon: TrendingUp },
+        { label: 'Total Revenue',   value: `GHS ${Number(summary.total_revenue  || 0).toFixed(2)}`,      color: 'var(--teal)',   Icon: TrendingUp },
         { label: 'Total Sales',     value: summary.total_sales      ?? 0,                                 color: 'var(--blue)',   Icon: BarChart2  },
         { label: 'Items Sold',      value: summary.total_items_sold ?? 0,                                 color: 'var(--purple)', Icon: Package    },
-        { label: 'Avg Order Value', value: `GH₵ ${Number(summary.avg_sale_value || 0).toFixed(2)}`,      color: 'var(--amber)',  Icon: DollarSign },
+        { label: 'Avg Order Value', value: `GHS ${Number(summary.avg_sale_value || 0).toFixed(2)}`,      color: 'var(--amber)',  Icon: DollarSign },
       ]
     : []
 
@@ -178,7 +178,7 @@ export default function Reports() {
                   <YAxis
                     tick={{ fontSize: 10, fill: 'var(--text-3)' }}
                     axisLine={false} tickLine={false} width={60}
-                    tickFormatter={v => `GH₵${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`}
+                    tickFormatter={v => `GHS${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`}
                   />
                   <Tooltip content={<SummaryTip />} cursor={{ stroke: 'var(--border-2)', strokeWidth: 1.5 }} />
                   <Area
@@ -198,7 +198,7 @@ export default function Reports() {
           <div className="card-header">
             <span className="card-header-title">Top Inventory Value</span>
             <span className="badge badge-blue mono" style={{ fontSize: '0.7rem' }}>
-              GH₵ {totalInventoryValue.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              GHS {totalInventoryValue.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
           <div style={{ padding: '1.5rem 1.25rem 1.25rem' }}>
@@ -225,7 +225,7 @@ export default function Reports() {
                     type="number"
                     tick={{ fontSize: 10, fill: 'var(--text-3)' }}
                     axisLine={false} tickLine={false}
-                    tickFormatter={v => `GH₵${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`}
+                    tickFormatter={v => `GHS${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`}
                   />
                   <YAxis
                     type="category" dataKey="name" width={90}
@@ -247,7 +247,7 @@ export default function Reports() {
         <div className="card-header">
           <span className="card-header-title">Full Inventory Value</span>
           <span className="badge badge-teal mono">
-            GH₵ {totalInventoryValue.toLocaleString('en', { minimumFractionDigits: 2 })}
+            GHS {totalInventoryValue.toLocaleString('en', { minimumFractionDigits: 2 })}
           </span>
         </div>
         {valueLoading ? (
@@ -279,10 +279,10 @@ export default function Reports() {
                       {p.stock_quantity}
                     </td>
                     <td className="mono" style={{ fontSize: '0.825rem' }}>
-                      GH₵ {Number(p.cost_price).toFixed(2)}
+                      GHS {Number(p.cost_price).toFixed(2)}
                     </td>
                     <td className="mono" style={{ fontWeight: 700, color: 'var(--teal)' }}>
-                      GH₵ {Number(p.total_value || 0).toFixed(2)}
+                      GHS {Number(p.total_value || 0).toFixed(2)}
                     </td>
                   </tr>
                 ))}

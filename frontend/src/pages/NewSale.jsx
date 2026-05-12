@@ -62,7 +62,7 @@ export default function NewSale() {
                 <option value="">Select a product…</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id} disabled={p.stock_quantity === 0}>
-                    {p.name} — GH₵ {p.selling_price} (stock: {p.stock_quantity})
+                    {p.name} — GHS {p.selling_price} (stock: {p.stock_quantity})
                   </option>
                 ))}
               </select>
@@ -71,7 +71,7 @@ export default function NewSale() {
             {selectedProduct && (
               <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex justify-between text-sm">
                 <span className="text-blue-800 font-medium">{selectedProduct.name}</span>
-                <span className="text-blue-600">GH₵ {selectedProduct.selling_price} / {selectedProduct.unit}</span>
+                <span className="text-blue-600">GHS {selectedProduct.selling_price} / {selectedProduct.unit}</span>
               </div>
             )}
 
@@ -124,8 +124,8 @@ export default function NewSale() {
                       <tr key={c.product.id}>
                         <td className="font-medium text-slate-800">{c.product.name}</td>
                         <td>{c.quantity}</td>
-                        <td className="text-slate-500">GH₵ {c.product.selling_price}</td>
-                        <td className="font-semibold">GH₵ {(c.quantity * Number(c.product.selling_price)).toFixed(2)}</td>
+                        <td className="text-slate-500">GHS {c.product.selling_price}</td>
+                        <td className="font-semibold">GHS {(c.quantity * Number(c.product.selling_price)).toFixed(2)}</td>
                         <td>
                           <button onClick={() => removeItem(c.product.id)} className="text-slate-300 hover:text-red-500 transition-colors">
                             <Trash2 size={14} />
@@ -140,7 +140,7 @@ export default function NewSale() {
               <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
                 <div className="flex justify-between items-center" style={{ marginBottom: '1.25rem' }}>
                   <span className="text-sm font-medium text-slate-600">Total Amount</span>
-                  <span className="text-2xl font-bold text-slate-900">GH₵ {total.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-slate-900">GHS {total.toFixed(2)}</span>
                 </div>
                 {errors.map((e, i) => <p key={i} className="text-red-500 text-sm mb-2">{e}</p>)}
                 <button onClick={() => submit.mutate()} disabled={submit.isPending || cart.length === 0} className="btn btn-success w-full">

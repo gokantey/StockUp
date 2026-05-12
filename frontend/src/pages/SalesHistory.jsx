@@ -146,7 +146,7 @@ export default function SalesHistory() {
                   <td style={{ fontSize: '0.845rem' }}>{new Date(s.created_at).toLocaleString()}</td>
                   <td>{s.items.length} item{s.items.length > 1 ? 's' : ''}</td>
                   <td className="mono" style={{ fontWeight: 700, color: s.is_voided ? 'var(--text-3)' : 'var(--text)', textDecoration: s.is_voided ? 'line-through' : 'none' }}>
-                    GH₵ {Number(s.total).toFixed(2)}
+                    GHS {Number(s.total).toFixed(2)}
                   </td>
                   <td>{s.created_by_name}</td>
                   <td>

@@ -7,15 +7,15 @@ import api from '../api/axios'
 
 function StatCard({ label, value, sub, Icon, colorClass }) {
   return (
-    <div className={`stat-card ${colorClass}`} style={{ color: '#fff' }}>
+    <div className={`stat-card ${colorClass}`}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem', position: 'relative', zIndex: 1 }}>
-        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.8 }}>{label}</p>
-        <div style={{ width: 36, height: 36, borderRadius: '9px', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon size={17} color="#fff" strokeWidth={2} />
+        <p style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-3)' }}>{label}</p>
+        <div style={{ width: 36, height: 36, borderRadius: '9px', background: 'var(--stat-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon size={17} style={{ color: 'var(--stat-color)' }} strokeWidth={2} />
         </div>
       </div>
-      <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1, fontFamily: "'Sora', sans-serif", position: 'relative', zIndex: 1 }}>{value ?? '—'}</p>
-      {sub && <p style={{ fontSize: '0.74rem', color: 'rgba(255,255,255,0.65)', marginTop: '0.4rem', position: 'relative', zIndex: 1 }}>{sub}</p>}
+      <p style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1, fontFamily: "'Outfit', sans-serif", position: 'relative', zIndex: 1 }}>{value ?? '—'}</p>
+      {sub && <p style={{ fontSize: '0.74rem', color: 'var(--text-3)', marginTop: '0.4rem', position: 'relative', zIndex: 1 }}>{sub}</p>}
     </div>
   )
 }
@@ -34,7 +34,7 @@ function RevTip({ active, payload, label }) {
   return (
     <div style={{ background: 'var(--navy)', borderRadius: '10px', padding: '0.75rem 1rem', boxShadow: 'var(--shadow-lg)', border: '1px solid rgba(255,255,255,0.08)' }}>
       <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', marginBottom: '0.3rem' }}>{label}</p>
-      <p style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem', fontFamily: "'JetBrains Mono', monospace" }}>GH₵ {payload[0].value.toLocaleString('en', { minimumFractionDigits: 2 })}</p>
+      <p style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem', fontFamily: "'JetBrains Mono', monospace" }}>GHS {payload[0].value.toLocaleString('en', { minimumFractionDigits: 2 })}</p>
       <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', marginTop: '0.15rem' }}>{payload[1]?.value ?? 0} sale{payload[1]?.value !== 1 ? 's' : ''}</p>
     </div>
   )
@@ -46,7 +46,7 @@ function ProdTip({ active, payload }) {
     <div style={{ background: 'var(--navy)', borderRadius: '10px', padding: '0.75rem 1rem', boxShadow: 'var(--shadow-lg)', border: '1px solid rgba(255,255,255,0.08)' }}>
       <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', marginBottom: '0.3rem' }}>{payload[0]?.payload?.name}</p>
       <p style={{ color: '#fff', fontWeight: 700, fontSize: '0.9rem' }}>{payload[0]?.value} units</p>
-      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', marginTop: '0.15rem' }}>GH₵ {payload[0]?.payload?.revenue?.toLocaleString('en', { minimumFractionDigits: 2 })}</p>
+      <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', marginTop: '0.15rem' }}>GHS {payload[0]?.payload?.revenue?.toLocaleString('en', { minimumFractionDigits: 2 })}</p>
     </div>
   )
 }
@@ -80,8 +80,8 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 xl:grid-cols-4" style={{ gap: '1.125rem', marginBottom: '1.5rem' }}>
         <StatCard label="Total Products"  value={data.total_products}  sub="active in inventory"    Icon={Package}      colorClass="stat-blue"   />
         <StatCard label="Low Stock"       value={data.low_stock_count} sub={data.low_stock_count > 0 ? 'need restocking' : 'all healthy'} Icon={AlertTriangle} colorClass="stat-amber"  />
-        <StatCard label="Inventory Value" value={`GH₵ ${Number(data.total_stock_value).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} sub="at cost price" Icon={TrendingUp} colorClass="stat-green" />
-        <StatCard label="Today's Revenue" value={`GH₵ ${Number(data.today_revenue).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} sub={`${data.today_sales_count} transaction${data.today_sales_count !== 1 ? 's' : ''}`} Icon={ShoppingCart} colorClass="stat-purple" />
+        <StatCard label="Inventory Value" value={`GHS ${Number(data.total_stock_value).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} sub="at cost price" Icon={TrendingUp} colorClass="stat-green" />
+        <StatCard label="Today's Revenue" value={`GHS ${Number(data.today_revenue).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} sub={`${data.today_sales_count} transaction${data.today_sales_count !== 1 ? 's' : ''}`} Icon={ShoppingCart} colorClass="stat-purple" />
       </div>
 
       <div style={{ marginBottom: '1.5rem' }}>
@@ -134,7 +134,7 @@ export default function Dashboard() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-3)', fontFamily: 'DM Sans' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: 'var(--text-3)', fontFamily: 'DM Sans' }} axisLine={false} tickLine={false} tickFormatter={v => `GH₵${v >= 1000 ? (v/1000).toFixed(1)+'k' : v}`} width={60} />
+                  <YAxis tick={{ fontSize: 11, fill: 'var(--text-3)', fontFamily: 'DM Sans' }} axisLine={false} tickLine={false} tickFormatter={v => `GHS${v >= 1000 ? (v/1000).toFixed(1)+'k' : v}`} width={60} />
                   <Tooltip content={<RevTip />} cursor={{ stroke: '#e2e8f2', strokeWidth: 1.5 }} />
                   <Area type="monotone" dataKey="revenue" stroke="var(--blue)" strokeWidth={2.2} fill="url(#revGrad)" dot={false} activeDot={{ r: 4, fill: 'var(--blue)', strokeWidth: 2, stroke: '#fff' }} />
                   <Area type="monotone" dataKey="transactions" stroke="transparent" fill="transparent" />

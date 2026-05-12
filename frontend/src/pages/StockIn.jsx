@@ -93,7 +93,7 @@ export default function StockIn() {
                     <input required type="number" min="1" className="input" placeholder="0" value={form.quantity} onChange={(e) => set('quantity', e.target.value)} />
                   </div>
                   <div>
-                    <label className="label">Cost Price / Unit (GH₵)</label>
+                    <label className="label">Cost Price / Unit (GHS)</label>
                     <input type="number" step="0.01" min="0" className="input" placeholder="Optional" value={form.unit_cost} onChange={(e) => set('unit_cost', e.target.value)} />
                   </div>
                 </div>
@@ -136,7 +136,7 @@ export default function StockIn() {
                       <tr key={m.id}>
                         <td className="font-medium text-slate-800">{m.product_name}</td>
                         <td><span className="badge badge-teal">+{m.quantity}</span></td>
-                        <td className="text-slate-500">{m.unit_cost ? `GH₵ ${m.unit_cost}` : '—'}</td>
+                        <td className="text-slate-500">{m.unit_cost ? `GHS ${m.unit_cost}` : '—'}</td>
                         <td className="text-slate-500">{m.supplier_name ?? '—'}</td>
                         <td className="text-slate-400 text-xs">{new Date(m.created_at).toLocaleDateString()}</td>
                       </tr>

@@ -226,7 +226,7 @@ class SalesExportView(APIView):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="sales_export.csv"'
         writer = csv.writer(response)
-        writer.writerow(['Receipt #', 'Date', 'Items', 'Total (GH₵)', 'Staff', 'Status', 'Void Reason'])
+        writer.writerow(['Receipt #', 'Date', 'Items', 'Total (GHS)', 'Staff', 'Status', 'Void Reason'])
         for sale in qs.order_by('-created_at'):
             writer.writerow([
                 f'#{str(sale.id).zfill(4)}',
@@ -259,7 +259,7 @@ class StockValueExportView(APIView):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="inventory_value.csv"'
         writer = csv.writer(response)
-        writer.writerow(['Product', 'SKU', 'Category', 'Stock Qty', 'Cost Price (GH₵)', 'Stock Value (GH₵)'])
+        writer.writerow(['Product', 'SKU', 'Category', 'Stock Qty', 'Cost Price (GHS)', 'Stock Value (GHS)'])
         for p in products:
             writer.writerow([
                 p.name,
