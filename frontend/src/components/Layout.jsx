@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, ArrowUpCircle, ShoppingCart,
   ClipboardList, AlertTriangle, BarChart2, Truck, Users,
   LogOut, Eye, EyeOff, X, CheckCircle, UserCircle,
-  ChevronRight, FileText
+  ChevronRight, FileText, History
 } from 'lucide-react'
 import api from '../api/axios'
 import useAuthStore from '../store/authStore'
@@ -180,6 +180,7 @@ export default function Layout({ children }) {
               <div style={{ margin: '1.25rem 0.375rem 1rem', borderTop: '1px solid var(--navy-border)' }} />
               <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.625rem', paddingLeft: '0.875rem' }}>Administration</p>
               <NavItem to="/users" label="Users" Icon={Users} />
+              <NavItem to="/audit-logs" label="Audit Logs" Icon={History} />
             </>
           )}
         </nav>
