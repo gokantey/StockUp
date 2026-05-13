@@ -16,6 +16,7 @@ const nav = [
   { to: '/purchase-orders', label: 'Purchase Orders', Icon: FileText },
   { to: '/sales/new', label: 'New Sale',      Icon: ShoppingCart,   end: true },
   { to: '/sales',     label: 'Sales History', Icon: ClipboardList,  end: true },
+  { to: '/end-of-day', label: 'End of Day',    Icon: CheckCircle },
   { to: '/low-stock', label: 'Low Stock',     Icon: AlertTriangle },
   { to: '/reports',   label: 'Reports',       Icon: BarChart2 },
   { to: '/suppliers', label: 'Suppliers',     Icon: Truck },

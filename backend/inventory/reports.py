@@ -409,3 +409,83 @@ class ProfitLossExportView(APIView):
             ])
 
         return response
+
+
+from .models import StockMovement
+from django.db.models.functions import Coalesce
+
+class EndOfDaySummaryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        date_str = request.query_params.get('date')
+        if date_str:
+            try:
+                target_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
+        else:
+            target_date = timezone.now().date()
+
+        # Sales for the day
+        sales_items = SaleItem.objects.filter(
+            sale__created_at__date=target_date,
+            sale__is_voided=False
+        ).annotate(
+            actual_cost=Coalesce('unit_cost_at_sale', F('product__cost_price')),
+            line_revenue=ExpressionWrapper(F('quantity') * F('unit_price_at_sale'), output_field=DecimalField(max_digits=14, decimal_places=2)),
+            line_cogs=ExpressionWrapper(F('quantity') * F('actual_cost'), output_field=DecimalField(max_digits=14, decimal_places=2)),
+        )
+
+        totals = sales_items.aggregate(
+            total_revenue=Sum('line_revenue'),
+            total_cogs=Sum('line_cogs'),
+            total_items=Sum('quantity'),
+        )
+        
+        revenue = float(totals['total_revenue'] or 0)
+        cogs = float(totals['total_cogs'] or 0)
+        profit = revenue - cogs
+        margin = round((profit / revenue * 100), 2) if revenue > 0 else 0
+        
+        transaction_count = Sale.objects.filter(
+            created_at__date=target_date, 
+            is_voided=False
+        ).count()
+
+        # Top Products
+        top_products = sales_items.values('product__name').annotate(
+            qty=Sum('quantity'),
+            rev=Sum('line_revenue')
+        ).order_by('-rev')[:5]
+
+        # Inventory Changes
+        movements = StockMovement.objects.filter(
+            created_at__date=target_date,
+            is_voided=False
+        ).select_related('product')
+        
+        stock_in_count = movements.filter(movement_type='IN').count()
+        stock_in_value = movements.filter(movement_type='IN').aggregate(
+            total=Sum(F('quantity') * F('unit_cost'), output_field=DecimalField(max_digits=14, decimal_places=2))
+        )['total'] or 0
+
+        return Response({
+            'date': target_date.strftime('%Y-%m-%d'),
+            'summary': {
+                'revenue': revenue,
+                'cogs': cogs,
+                'profit': profit,
+                'margin_pct': margin,
+                'transaction_count': transaction_count,
+                'items_sold': totals['total_items'] or 0,
+            },
+            'top_products': [
+                {'name': p['product__name'], 'qty': p['qty'], 'rev': float(p['rev'])} 
+                for p in top_products
+            ],
+            'inventory': {
+                'stock_in_count': stock_in_count,
+                'stock_in_value': float(stock_in_value),
+            }
+        })

@@ -16,6 +16,7 @@ import PurchaseOrders from './pages/PurchaseOrders'
 import Users from './pages/Users'
 import Account from './pages/Account'
 import AuditLogs from './pages/AuditLogs'
+import EndOfDay from './pages/EndOfDay'
 
 const qc = new QueryClient()
 
@@ -36,6 +37,7 @@ function AppRoutes() {
                 <Route path="/sales/new" element={<NewSale />} />
                 <Route path="/sales" element={<SalesHistory />} />
                 <Route path="/sales/:id" element={<SaleReceipt />} />
+                <Route path="/end-of-day" element={<EndOfDay />} />
                 <Route path="/low-stock" element={<LowStock />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/suppliers" element={<ProtectedRoute adminOnly><Suppliers /></ProtectedRoute>} />
