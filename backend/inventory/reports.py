@@ -270,3 +270,142 @@ class StockValueExportView(APIView):
                 f'{p.total_value:.2f}' if p.total_value else '0.00',
             ])
         return response
+
+
+class ProfitLossReportView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = SaleItem.objects.filter(sale__is_voided=False)
+        date_from = request.query_params.get('date_from')
+        date_to   = request.query_params.get('date_to')
+        if date_from:
+            qs = qs.filter(sale__created_at__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(sale__created_at__date__lte=date_to)
+
+        from django.db.models.functions import Coalesce
+        qs = qs.annotate(
+            actual_cost=Coalesce('unit_cost_at_sale', F('product__cost_price')),
+            line_revenue=ExpressionWrapper(F('quantity') * F('unit_price_at_sale'), output_field=DecimalField(max_digits=14, decimal_places=2)),
+            line_cogs=ExpressionWrapper(F('quantity') * F('actual_cost'), output_field=DecimalField(max_digits=14, decimal_places=2)),
+            line_profit=ExpressionWrapper(
+                (F('quantity') * F('unit_price_at_sale')) - (F('quantity') * F('actual_cost')),
+                output_field=DecimalField(max_digits=14, decimal_places=2)
+            )
+        )
+
+        totals = qs.aggregate(
+            total_revenue=Sum('line_revenue'),
+            total_cogs=Sum('line_cogs'),
+            total_profit=Sum('line_profit'),
+        )
+        total_revenue = float(totals['total_revenue'] or 0)
+        total_cogs = float(totals['total_cogs'] or 0)
+        gross_profit = float(totals['total_profit'] or 0)
+        gross_margin_pct = round((gross_profit / total_revenue * 100), 2) if total_revenue > 0 else 0
+
+        # By product
+        by_product_qs = qs.values(
+            'product__name', 'product__category__name'
+        ).annotate(
+            units_sold=Sum('quantity'),
+            revenue=Sum('line_revenue'),
+            cogs=Sum('line_cogs'),
+            gross_profit=Sum('line_profit')
+        ).order_by('-gross_profit')
+
+        by_product = []
+        for p in by_product_qs:
+            rev = float(p['revenue'] or 0)
+            cogs = float(p['cogs'] or 0)
+            profit = float(p['gross_profit'] or 0)
+            margin = round((profit / rev * 100), 2) if rev > 0 else 0
+            by_product.append({
+                'product_name': p['product__name'],
+                'category': p['product__category__name'] or '—',
+                'units_sold': p['units_sold'],
+                'revenue': rev,
+                'cogs': cogs,
+                'gross_profit': profit,
+                'margin_pct': margin
+            })
+
+        # Trend (similar to SalesSummaryReportView)
+        trend_qs = qs.annotate(date=TruncDate('sale__created_at')).values('date').annotate(
+            revenue=Sum('line_revenue'),
+            cogs=Sum('line_cogs'),
+            profit=Sum('line_profit')
+        ).order_by('date')
+
+        trend = []
+        for t in trend_qs:
+            trend.append({
+                'date': t['date'].strftime('%b %d'),
+                'revenue': float(t['revenue'] or 0),
+                'cogs': float(t['cogs'] or 0),
+                'profit': float(t['profit'] or 0)
+            })
+
+        return Response({
+            'total_revenue': total_revenue,
+            'total_cogs': total_cogs,
+            'gross_profit': gross_profit,
+            'gross_margin_pct': gross_margin_pct,
+            'by_product': by_product,
+            'trend': trend
+        })
+
+
+class ProfitLossExportView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        qs = SaleItem.objects.filter(sale__is_voided=False)
+        date_from = request.query_params.get('date_from')
+        date_to   = request.query_params.get('date_to')
+        if date_from:
+            qs = qs.filter(sale__created_at__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(sale__created_at__date__lte=date_to)
+
+        from django.db.models.functions import Coalesce
+        qs = qs.annotate(
+            actual_cost=Coalesce('unit_cost_at_sale', F('product__cost_price')),
+            line_revenue=ExpressionWrapper(F('quantity') * F('unit_price_at_sale'), output_field=DecimalField(max_digits=14, decimal_places=2)),
+            line_cogs=ExpressionWrapper(F('quantity') * F('actual_cost'), output_field=DecimalField(max_digits=14, decimal_places=2)),
+            line_profit=ExpressionWrapper(
+                (F('quantity') * F('unit_price_at_sale')) - (F('quantity') * F('actual_cost')),
+                output_field=DecimalField(max_digits=14, decimal_places=2)
+            )
+        )
+
+        by_product_qs = qs.values(
+            'product__name', 'product__category__name'
+        ).annotate(
+            units_sold=Sum('quantity'),
+            revenue=Sum('line_revenue'),
+            cogs=Sum('line_cogs'),
+            gross_profit=Sum('line_profit')
+        ).order_by('-gross_profit')
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="profit_loss.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Product', 'Category', 'Units Sold', 'Revenue (GHS)', 'COGS (GHS)', 'Gross Profit (GHS)', 'Margin %'])
+
+        for p in by_product_qs:
+            rev = float(p['revenue'] or 0)
+            profit = float(p['gross_profit'] or 0)
+            margin = round((profit / rev * 100), 2) if rev > 0 else 0
+            writer.writerow([
+                p['product__name'],
+                p['product__category__name'] or '—',
+                p['units_sold'],
+                f"{p['revenue']:.2f}",
+                f"{p['cogs']:.2f}",
+                f"{p['gross_profit']:.2f}",
+                f"{margin:.2f}"
+            ])
+
+        return response

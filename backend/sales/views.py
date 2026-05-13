@@ -59,6 +59,7 @@ class CreateSaleView(APIView):
                 product=product,
                 quantity=quantity,
                 unit_price_at_sale=product.selling_price,
+                unit_cost_at_sale=product.cost_price,
             )
             StockMovement.objects.create(
                 product=product,

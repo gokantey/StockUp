@@ -12,10 +12,12 @@ class SaleItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_sku = serializers.CharField(source='product.sku', read_only=True)
     line_total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    unit_cost_at_sale = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    line_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = SaleItem
-        fields = ['id', 'product', 'product_name', 'product_sku', 'quantity', 'unit_price_at_sale', 'line_total']
+        fields = ['id', 'product', 'product_name', 'product_sku', 'quantity', 'unit_price_at_sale', 'unit_cost_at_sale', 'line_total', 'line_cost']
 
 
 class SaleSerializer(serializers.ModelSerializer):

@@ -9,6 +9,8 @@ from inventory.reports import (
     TopProductsView,
     SalesExportView,
     StockValueExportView,
+    ProfitLossReportView,
+    ProfitLossExportView,
 )
 
 urlpatterns = [
@@ -25,4 +27,6 @@ urlpatterns = [
     path('api/dashboard/top-products/', TopProductsView.as_view(), name='top_products'),
     path('api/sales/export/', SalesExportView.as_view(), name='sales_export'),
     path('api/reports/stock-value/export/', StockValueExportView.as_view(), name='stock_value_export'),
+    path('api/reports/profit-loss/', ProfitLossReportView.as_view(), name='report_profit_loss'),
+    path('api/reports/profit-loss/export/', ProfitLossExportView.as_view(), name='profit_loss_export'),
 ]

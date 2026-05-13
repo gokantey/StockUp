@@ -30,10 +30,16 @@ class SaleItem(models.Model):
     product = models.ForeignKey('inventory.Product', on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField()
     unit_price_at_sale = models.DecimalField(max_digits=10, decimal_places=2)
+    unit_cost_at_sale = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     @property
     def line_total(self):
         return self.quantity * self.unit_price_at_sale
+
+    @property
+    def line_cost(self):
+        cost = self.unit_cost_at_sale or self.product.cost_price
+        return self.quantity * cost
 
     def __str__(self):
         return f'{self.quantity} x {self.product.name}'
