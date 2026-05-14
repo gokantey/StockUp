@@ -5,10 +5,10 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Create the first admin account for StockUp'
+    help = 'Create the first admin account for R&J'
 
     def handle(self, *args, **kwargs):
-        self.stdout.write('\n── StockUp First Admin Setup ──\n')
+        self.stdout.write('\n── R&J First Admin Setup ──\n')
 
         email     = input('Email: ').strip().lower()
         full_name = input('Full name: ').strip()

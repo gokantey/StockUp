@@ -63,7 +63,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'stockup'),
+        'NAME': os.getenv('DB_NAME', 'rj'),
         'USER': os.getenv('DB_USER', 'postgres'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
@@ -171,7 +171,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'stockup.log',
+            'filename': BASE_DIR / 'logs' / 'rj.log',
             'maxBytes': 1024 * 1024 * 5,
             'backupCount': 5,
             'formatter': 'verbose',
@@ -182,7 +182,7 @@ LOGGING = {
         'level': 'WARNING',
     },
     'loggers': {
-        'stockup': {
+        'rj': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': False,
@@ -209,4 +209,4 @@ EMAIL_PORT          = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS       = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER     = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL  = os.getenv('DEFAULT_FROM_EMAIL', 'StockUp <noreply@stockup.com>')
+DEFAULT_FROM_EMAIL  = os.getenv('DEFAULT_FROM_EMAIL', 'R&J <noreply@rj.com>')

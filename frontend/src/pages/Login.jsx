@@ -53,7 +53,7 @@ export default function Login() {
               <Package size={21} color="#fff" strokeWidth={2.3} />
             </div>
             <div>
-              <p style={{ color: '#fff', fontWeight: 800, fontSize: '1.125rem', fontFamily: "'Sora', sans-serif", letterSpacing: '-0.01em', lineHeight: 1.1 }}>StockUp</p>
+              <p style={{ color: '#fff', fontWeight: 800, fontSize: '1.125rem', fontFamily: "'Sora', sans-serif", letterSpacing: '-0.01em', lineHeight: 1.1 }}>R&J</p>
               <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '0.1rem' }}>Inventory Manager</p>
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function Login() {
         </div>
 
         <p style={{ position: 'relative', zIndex: 1, fontSize: '0.67rem', color: 'rgba(255,255,255,0.18)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          © {new Date().getFullYear()} StockUp
+          © {new Date().getFullYear()} R&J
         </p>
       </div>
 

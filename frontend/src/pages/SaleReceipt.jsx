@@ -80,7 +80,7 @@ export default function SaleReceipt() {
           <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-xl mb-3">
             <Package size={20} color="white" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">StockUp</h2>
+          <h2 className="text-xl font-bold text-slate-900">R&J</h2>
           <p className="text-slate-400 text-sm mt-0.5">Provision Shop</p>
         </div>
 

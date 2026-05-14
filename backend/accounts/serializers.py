@@ -2,7 +2,7 @@ import logging
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
-logger = logging.getLogger('stockup')
+logger = logging.getLogger('rj')
 User = get_user_model()
 
 VALID_ROLES = ['admin', 'staff']

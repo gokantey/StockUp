@@ -9,7 +9,7 @@ from .serializers import CategorySerializer, ProductSerializer, StockMovementSer
 from .filters import ProductFilter, StockMovementFilter
 from accounts.views import IsAdmin
 
-logger = logging.getLogger('stockup')
+logger = logging.getLogger('rj')
 
 
 class CategoryListCreateView(generics.ListCreateAPIView):

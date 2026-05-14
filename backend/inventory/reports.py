@@ -11,7 +11,7 @@ from rest_framework import permissions
 from .models import Product
 from sales.models import Sale, SaleItem
 
-logger = logging.getLogger('stockup')
+logger = logging.getLogger('rj')
 
 
 class LowStockReportView(APIView):

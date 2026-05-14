@@ -145,7 +145,7 @@ export default function Layout({ children }) {
               <Package size={19} color="#fff" strokeWidth={2.3} />
             </div>
             <div>
-              <p style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.01em', lineHeight: 1.2, fontFamily: "'Sora', sans-serif" }}>StockUp</p>
+              <p style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.01em', lineHeight: 1.2, fontFamily: "'Sora', sans-serif" }}>R&J</p>
               <p style={{ color: 'var(--navy-muted)', fontSize: '0.67rem', marginTop: '0.1rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Inventory</p>
             </div>
           </div>

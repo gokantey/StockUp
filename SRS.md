@@ -1,5 +1,5 @@
 # Software Requirements Specification
-## StockUp — Provision Shop Inventory Management System
+## R&J — Provision Shop Inventory Management System
 
 **Version:** 1.0  
 **Date:** 2026-04-23  
@@ -10,7 +10,7 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-StockUp is a web-based inventory management system designed for small-to-medium provision shops. It enables shop owners and staff to track stock levels, record sales and purchases, manage suppliers, and receive alerts when items run low — all from a single dashboard.
+R&J is a web-based inventory management system designed for small-to-medium provision shops. It enables shop owners and staff to track stock levels, record sales and purchases, manage suppliers, and receive alerts when items low — all from a single dashboard.
 
 ### 1.2 Scope
 The MVP covers the core inventory loop: products in (via stock-in / purchase recording) and products out (via sales recording), with real-time stock level visibility and basic reporting.
@@ -181,7 +181,7 @@ SaleItem        — id, sale_fk, product_fk, quantity, unit_price_at_sale
 ## 9. Project Structure (Proposed)
 
 ```
-stockup/
+rj/
 ├── backend/                  # Django project
 │   ├── config/               # settings, urls, wsgi
 │   ├── apps/

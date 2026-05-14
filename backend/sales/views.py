@@ -10,7 +10,7 @@ from .filters import SaleFilter
 from inventory.models import Product, StockMovement
 from accounts.views import IsAdmin
 
-logger = logging.getLogger('stockup')
+logger = logging.getLogger('rj')
 
 
 class SaleListView(generics.ListAPIView):

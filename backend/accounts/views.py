@@ -14,7 +14,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from .serializers import UserSerializer, CreateUserSerializer, UpdateUserSerializer
 
-logger = logging.getLogger('stockup')
+logger = logging.getLogger('rj')
 User = get_user_model()
 
 ALLOWED_REDIRECT_HOSTS = [
@@ -80,7 +80,7 @@ class PasswordResetRequestView(APIView):
             frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
             reset_link   = f'{frontend_url}/reset-password/{uid}/{token}/'
             send_mail(
-                subject='StockUp — Password Reset',
+                subject='R&J — Password Reset',
                 message=(
                     f'Hi {user.full_name},\n\n'
                     f'Click the link below to reset your password. '

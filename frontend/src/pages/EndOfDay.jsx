@@ -76,7 +76,7 @@ export default function EndOfDay() {
       <div id="printable-report">
         {/* Print Header (Only visible on print) */}
         <div className="print-only" style={{ marginBottom: '2rem', textAlign: 'center' }}>
-          <h1 style={{ margin: 0 }}>StockUp Inventory</h1>
+          <h1 style={{ margin: 0 }}>R&J Inventory</h1>
           <h2 style={{ margin: '0.5rem 0' }}>Daily Summary Report</h2>
           <p style={{ color: '#666' }}>Date: {new Date(date).toLocaleDateString('en-GB', { dateStyle: 'full' })}</p>
           <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid #eee' }} />
