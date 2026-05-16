@@ -13,7 +13,7 @@ export default function LowStock() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Low Stock Alerts</h1>
-        <Link to="/stock-in" className="btn btn-primary">
+        <Link to="/stock-in" className="btn btn-primary interactive-item">
           <ArrowUpCircle size={15} /> Record Stock In
         </Link>
       </div>

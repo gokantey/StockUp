@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, X, FileText, CheckCircle, PackageCheck, Ban, Trash2 } from 'lucide-react'
+import { Plus, X, FileText, CheckCircle, PackageCheck, Ban, Trash2, Printer } from 'lucide-react'
 import api from '../api/axios'
+import FormField, { getErrorMessage } from '../components/FormField'
 
 // Helper for status badge
 const StatusBadge = ({ status }) => {
@@ -92,7 +93,10 @@ export default function PurchaseOrders() {
       product_name: item.product_name,
       ordered_qty: item.ordered_qty,
       received_qty: item.received_qty,
-      received_qty_now: 0
+      rejected_qty: item.rejected_qty,
+      received_qty_now: 0,
+      rejected_qty_now: 0,
+      rejection_note_now: ''
     })))
   }
 
@@ -104,6 +108,8 @@ export default function PurchaseOrders() {
     })
   }
 
+  const [viewInvoice, setViewInvoice] = useState(null)
+
   return (
     <div>
       <div className="page-header">
@@ -111,8 +117,8 @@ export default function PurchaseOrders() {
           <h1 className="page-title">Purchase Orders</h1>
           <p className="page-subtitle">{pos.length} PO{pos.length !== 1 ? 's' : ''}</p>
         </div>
-        <button onClick={() => { setPoForm({ supplier: '', expected_date: '', notes: '', status: 'ordered', items: [] }); setShowCreate(true) }} className="btn btn-primary">
-          <Plus size={15} /> Create PO
+        <button onClick={() => { setPoForm({ supplier: '', expected_date: '', notes: '', status: 'ordered', items: [] }); setShowCreate(true) }} className="btn btn-primary interactive-item">
+          <Plus size={15} /> Create Purchase Order
         </button>
       </div>
 
@@ -134,16 +140,17 @@ export default function PurchaseOrders() {
                   <td>
                     {po.items.length} items
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.2rem' }}>
-                      {po.items.reduce((acc, i) => acc + i.received_qty, 0)} / {po.items.reduce((acc, i) => acc + i.ordered_qty, 0)} received
+                      {po.items.reduce((acc, i) => acc + i.received_qty, 0)} / {po.items.reduce((acc, i) => acc + i.ordered_qty, 0)} accepted
                     </div>
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <button onClick={() => setViewInvoice(po)} className="btn btn-ghost btn-sm interactive-item"><FileText size={12} /> Invoice</button>
                       {['ordered', 'partially_received'].includes(po.status) && (
                         <>
-                          <button onClick={() => openReceive(po)} className="btn btn-primary btn-sm"><PackageCheck size={12} /> Receive</button>
+                          <button onClick={() => openReceive(po)} className="btn btn-primary btn-sm interactive-item"><PackageCheck size={12} /> Receive</button>
                           {po.status === 'ordered' && (
-                            <button onClick={() => cancelPO.mutate(po.id)} className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }}><Ban size={12} /> Cancel</button>
+                            <button onClick={() => cancelPO.mutate(po.id)} className="btn btn-ghost btn-sm interactive-item" style={{ color: 'var(--red)' }}><Ban size={12} /> Cancel</button>
                           )}
                         </>
                       )}
@@ -166,6 +173,96 @@ export default function PurchaseOrders() {
         )}
       </div>
 
+      {/* View Invoice Modal */}
+      {viewInvoice && (
+        <div className="modal-overlay" onClick={() => setViewInvoice(null)}>
+          <div className="modal" style={{ maxWidth: '46rem', padding: 0, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface-2)' }}>
+              <h3 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700 }}>Purchase Order Document</h3>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={() => window.print()} className="btn btn-ghost btn-sm interactive-item"><Printer size={14} /> Print</button>
+                <button onClick={() => setViewInvoice(null)} className="btn btn-ghost btn-sm interactive-item"><X size={14} /></button>
+              </div>
+            </div>
+            
+            <div style={{ padding: '3.5rem 3rem', background: '#fff' }} id="po-invoice">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3.5rem' }}>
+                <div>
+                  <img src="/rj.svg" alt="R&J" style={{ width: 50, height: 50, marginBottom: '1rem' }} />
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--navy)', margin: 0, letterSpacing: '-0.03em' }}>R&J PROVISIONS</h2>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-3)', marginTop: '0.25rem' }}>Inventory Procurement Division</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#f1f5f9', margin: 0, lineHeight: 1 }}>INVOICE</h1>
+                  <p style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--navy)', marginTop: '0.5rem' }}>{viewInvoice.po_number}</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', marginBottom: '3rem' }}>
+                <div>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Supplier Information</p>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.25rem' }}>{viewInvoice.supplier_name || 'Generic Supplier'}</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-2)', lineHeight: 1.6 }}>
+                    Official procurement partner<br />
+                    Accra, Ghana
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Order Details</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-2)' }}><strong>Date:</strong> {new Date(viewInvoice.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-2)' }}><strong>Expected:</strong> {viewInvoice.expected_date ? new Date(viewInvoice.expected_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Asap'}</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-2)' }}><strong>Status:</strong> <span style={{ textTransform: 'uppercase', fontWeight: 700 }}>{viewInvoice.status.replace('_', ' ')}</span></p>
+                  </div>
+                </div>
+              </div>
+
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '3rem' }}>
+                <thead>
+                  <tr style={{ background: 'var(--navy)', color: '#fff' }}>
+                    <th style={{ textAlign: 'left', padding: '0.875rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase' }}>Product Description</th>
+                    <th style={{ textAlign: 'center', padding: '0.875rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase' }}>Ordered</th>
+                    <th style={{ textAlign: 'center', padding: '0.875rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase' }}>Accepted</th>
+                    <th style={{ textAlign: 'right', padding: '0.875rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase' }}>Unit Cost</th>
+                    <th style={{ textAlign: 'right', padding: '0.875rem 1rem', fontSize: '0.75rem', textTransform: 'uppercase' }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {viewInvoice.items.map((item, idx) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '1rem', fontSize: '0.9rem', fontWeight: 600 }}>{item.product_name}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>{item.ordered_qty}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center', fontSize: '0.9rem', color: item.received_qty > 0 ? 'var(--green)' : 'var(--text-3)' }}>{item.received_qty}</td>
+                      <td style={{ padding: '1rem', textAlign: 'right', fontSize: '0.9rem' }}>{Number(item.unit_cost).toFixed(2)}</td>
+                      <td style={{ padding: '1rem', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700 }}>{(item.ordered_qty * item.unit_cost).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div style={{ marginLeft: 'auto', maxWidth: '240px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-3)' }}>Subtotal</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700 }}>GHS {viewInvoice.items.reduce((sum, i) => sum + (i.ordered_qty * i.unit_cost), 0).toFixed(2)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderTop: '2px solid var(--navy)', marginTop: '0.5rem' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--navy)' }}>GRAND TOTAL</span>
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--navy)' }}>GHS {viewInvoice.items.reduce((sum, i) => sum + (i.ordered_qty * i.unit_cost), 0).toFixed(2)}</span>
+                </div>
+              </div>
+
+              {viewInvoice.notes && (
+                <div style={{ marginTop: '4rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '10px', borderLeft: '4px solid var(--navy)' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Order Notes</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-2)', lineHeight: 1.6 }}>{viewInvoice.notes}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal" style={{ maxWidth: '42rem' }} onClick={e => e.stopPropagation()}>
@@ -176,28 +273,25 @@ export default function PurchaseOrders() {
             
             <form onSubmit={handleCreate} className="form-group">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Supplier</label>
+                <FormField label="Supplier">
                   <select className="input" value={poForm.supplier} onChange={e => setPoForm({ ...poForm, supplier: e.target.value })}>
                     <option value="">No Supplier</option>
                     {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className="label">Expected Date</label>
+                </FormField>
+                <FormField label="Expected Date">
                   <input type="date" className="input" value={poForm.expected_date} onChange={e => setPoForm({ ...poForm, expected_date: e.target.value })} />
-                </div>
+                </FormField>
               </div>
 
-              <div>
-                <label className="label">Notes</label>
+              <FormField label="Notes">
                 <textarea className="input" rows={2} value={poForm.notes} onChange={e => setPoForm({ ...poForm, notes: e.target.value })} />
-              </div>
+              </FormField>
 
               <div style={{ marginTop: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <label className="label" style={{ margin: 0 }}>Order Items</label>
-                  <button type="button" onClick={addPoItem} className="btn btn-ghost btn-sm" style={{ padding: '0.2rem 0.5rem' }}><Plus size={14} /> Add Item</button>
+                  <button type="button" onClick={addPoItem} className="btn btn-ghost btn-sm interactive-item" style={{ padding: '0.2rem 0.5rem' }}><Plus size={14} /> Add Item</button>
                 </div>
                 
                 {poForm.items.length === 0 && (
@@ -220,19 +314,24 @@ export default function PurchaseOrders() {
                     <div style={{ flex: 1 }}>
                       <input required type="number" step="0.01" min="0" className="input" placeholder="Unit Cost" value={item.unit_cost} onChange={e => updatePoItem(i, 'unit_cost', e.target.value)} />
                     </div>
-                    <button type="button" onClick={() => removePoItem(i)} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: '0.5rem' }}>
+                    <button type="button" onClick={() => removePoItem(i)} className="interactive-item" style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: '0.5rem' }}>
                       <Trash2 size={16} />
                     </button>
                   </div>
                 ))}
               </div>
 
-              <div style={{ display: 'flex', gap: '0.625rem', marginTop: '1.5rem' }}>
-                <button type="submit" disabled={createPO.isPending || poForm.items.length === 0} className="btn btn-primary" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', gap: '0.625rem', marginTop: '1rem' }}>
+                <button type="submit" disabled={createPO.isPending || poForm.items.length === 0} className="btn btn-primary interactive-item" style={{ flex: 1 }}>
                   {createPO.isPending ? 'Creating…' : 'Create PO'}
                 </button>
-                <button type="button" onClick={() => setShowCreate(false)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
+                <button type="button" onClick={() => setShowCreate(false)} className="btn btn-ghost interactive-item" style={{ flex: 1 }}>Cancel</button>
               </div>
+              {createPO.error && (
+                <div className="alert alert-red" style={{ marginTop: '1rem' }}>
+                  {getErrorMessage(createPO.error)}
+                </div>
+              )}
             </form>
           </div>
         </div>
@@ -240,7 +339,7 @@ export default function PurchaseOrders() {
 
       {receivingPO && (
         <div className="modal-overlay" onClick={() => setReceivingPO(null)}>
-          <div className="modal" style={{ maxWidth: '32rem' }} onClick={e => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: '44rem' }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
               <h3 className="modal-title" style={{ margin: 0 }}>Receive Delivery: {receivingPO.po_number}</h3>
               <button onClick={() => setReceivingPO(null)} style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}><X size={18} /></button>
@@ -253,24 +352,24 @@ export default function PurchaseOrders() {
                     <tr>
                       <th>Product</th>
                       <th>Ordered</th>
-                      <th>Received</th>
-                      <th style={{ width: 100 }}>Receiving Now</th>
+                      <th>Accepted</th>
+                      <th style={{ width: 90 }}>Receive</th>
+                      <th style={{ width: 90 }}>Reject</th>
+                      <th>Rejection Note</th>
                     </tr>
                   </thead>
                   <tbody>
                     {receiveForm.map((item, i) => (
                       <tr key={item.id}>
-                        <td style={{ fontSize: '0.85rem' }}>{item.product_name}</td>
-                        <td style={{ fontSize: '0.85rem' }}>{item.ordered_qty}</td>
-                        <td style={{ fontSize: '0.85rem', color: item.received_qty === item.ordered_qty ? 'var(--green)' : 'inherit' }}>{item.received_qty}</td>
+                        <td style={{ fontSize: '0.8rem' }}>{item.product_name}</td>
+                        <td style={{ fontSize: '0.8rem' }}>{item.ordered_qty}</td>
+                        <td style={{ fontSize: '0.8rem', color: item.received_qty === item.ordered_qty ? 'var(--green)' : 'inherit' }}>{item.received_qty}</td>
                         <td>
                           {item.received_qty < item.ordered_qty ? (
                             <input
-                              type="number"
-                              min="0"
-                              max={item.ordered_qty - item.received_qty}
+                              type="number" min="0"
                               className="input"
-                              style={{ padding: '0.3rem 0.5rem', height: 'auto', fontSize: '0.85rem' }}
+                              style={{ padding: '0.3rem 0.5rem', height: 'auto', fontSize: '0.8rem' }}
                               value={item.received_qty_now}
                               onChange={e => {
                                 const val = parseInt(e.target.value) || 0
@@ -279,8 +378,37 @@ export default function PurchaseOrders() {
                                 setReceiveForm(newForm)
                               }}
                             />
-                          ) : (
-                            <CheckCircle size={16} style={{ color: 'var(--green)' }} />
+                          ) : <CheckCircle size={14} style={{ color: 'var(--green)' }} />}
+                        </td>
+                        <td>
+                          {item.received_qty < item.ordered_qty && (
+                            <input
+                              type="number" min="0"
+                              className="input"
+                              style={{ padding: '0.3rem 0.5rem', height: 'auto', fontSize: '0.8rem', borderColor: item.rejected_qty_now > 0 ? 'var(--red)' : 'var(--border)' }}
+                              value={item.rejected_qty_now}
+                              onChange={e => {
+                                const val = parseInt(e.target.value) || 0
+                                const newForm = [...receiveForm]
+                                newForm[i].rejected_qty_now = val
+                                setReceiveForm(newForm)
+                              }}
+                            />
+                          )}
+                        </td>
+                        <td>
+                          {item.received_qty < item.ordered_qty && item.rejected_qty_now > 0 && (
+                            <input 
+                              className="input" 
+                              style={{ padding: '0.3rem 0.5rem', height: 'auto', fontSize: '0.75rem' }} 
+                              placeholder="Reason..." 
+                              value={item.rejection_note_now}
+                              onChange={e => {
+                                const newForm = [...receiveForm]
+                                newForm[i].rejection_note_now = e.target.value
+                                setReceiveForm(newForm)
+                              }}
+                            />
                           )}
                         </td>
                       </tr>
@@ -290,11 +418,16 @@ export default function PurchaseOrders() {
               </div>
 
               <div style={{ display: 'flex', gap: '0.625rem', marginTop: '1.5rem' }}>
-                <button type="submit" disabled={receivePO.isPending || receiveForm.every(i => i.received_qty_now === 0)} className="btn btn-primary" style={{ flex: 1 }}>
-                  {receivePO.isPending ? 'Processing…' : 'Confirm Receipt'}
+                <button type="submit" disabled={receivePO.isPending || receiveForm.every(i => i.received_qty_now === 0 && i.rejected_qty_now === 0)} className="btn btn-primary interactive-item" style={{ flex: 1 }}>
+                  {receivePO.isPending ? 'Processing…' : 'Confirm Reception'}
                 </button>
-                <button type="button" onClick={() => setReceivingPO(null)} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>
+                <button type="button" onClick={() => setReceivingPO(null)} className="btn btn-ghost interactive-item" style={{ flex: 1 }}>Cancel</button>
               </div>
+              {receivePO.error && (
+                <div className="alert alert-red" style={{ marginTop: '1rem' }}>
+                  {getErrorMessage(receivePO.error)}
+                </div>
+              )}
             </form>
           </div>
         </div>

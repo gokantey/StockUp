@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, ShoppingCart } from 'lucide-react'
 import api from '../api/axios'
+import FormField, { getErrorMessage } from '../components/FormField'
 
 export default function NewSale() {
   const qc = useQueryClient()
@@ -11,7 +12,7 @@ export default function NewSale() {
   const [note, setNote] = useState('')
   const [productId, setProductId] = useState('')
   const [qty, setQty] = useState(1)
-  const [errors, setErrors] = useState([])
+  const [submitError, setSubmitError] = useState(null)
 
   const { data: products = [] } = useQuery({
     queryKey: ['products', ''],
@@ -28,7 +29,7 @@ export default function NewSale() {
     } else {
       setCart([...cart, { product: selectedProduct, quantity: Number(qty) }])
     }
-    setProductId(''); setQty(1); setErrors([])
+    setProductId(''); setQty(1); setSubmitError(null)
   }
 
   const removeItem = (id) => setCart(cart.filter((c) => c.product.id !== id))
@@ -38,8 +39,7 @@ export default function NewSale() {
     mutationFn: () => api.post('/sales/new/', { items: cart.map((c) => ({ product: c.product.id, quantity: c.quantity })), note }),
     onSuccess: (res) => { qc.invalidateQueries(['products']); qc.invalidateQueries(['dashboard']); navigate(`/sales/${res.data.id}`) },
     onError: (err) => {
-      const data = err.response?.data
-      setErrors(data?.items ? data.items.flat() : ['Something went wrong.'])
+      setSubmitError(err)
     },
   })
 
@@ -56,8 +56,7 @@ export default function NewSale() {
             <span className="card-header-title">Add Items to Cart</span>
           </div>
           <div className="card-body form-group">
-            <div>
-              <label className="label">Product</label>
+            <FormField label="Product">
               <select className="input" value={productId} onChange={(e) => setProductId(e.target.value)}>
                 <option value="">Select a product…</option>
                 {products.map((p) => (
@@ -66,17 +65,16 @@ export default function NewSale() {
                   </option>
                 ))}
               </select>
-            </div>
+            </FormField>
 
             {selectedProduct && (
-              <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex justify-between text-sm">
-                <span className="text-blue-800 font-medium">{selectedProduct.name}</span>
-                <span className="text-blue-600">GHS {selectedProduct.selling_price} / {selectedProduct.unit}</span>
+              <div style={{ background: 'var(--blue-light)', border: '1px solid var(--blue)', borderRadius: '10px', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <span style={{ fontWeight: 600, color: 'var(--blue)' }}>{selectedProduct.name}</span>
+                <span style={{ color: 'var(--blue)' }}>GHS {selectedProduct.selling_price} / {selectedProduct.unit}</span>
               </div>
             )}
 
-            <div>
-              <label className="label">Quantity</label>
+            <FormField label="Quantity">
               <input
                 type="number" min="1"
                 max={selectedProduct?.stock_quantity || undefined}
@@ -84,15 +82,16 @@ export default function NewSale() {
                 value={qty}
                 onChange={(e) => setQty(e.target.value)}
               />
-            </div>
+            </FormField>
 
-            <button type="button" disabled={!productId} onClick={addToCart} className="btn btn-primary w-full">
+            <button type="button" disabled={!productId} onClick={addToCart} className="btn btn-primary w-full interactive-item">
               <Plus size={15} /> Add to Cart
             </button>
 
-            <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
-              <label className="label">Note (optional)</label>
-              <input className="input" placeholder="e.g. customer name" value={note} onChange={(e) => setNote(e.target.value)} />
+            <div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--border)' }}>
+              <FormField label="Note (optional)">
+                <input className="input" placeholder="e.g. customer name" maxLength={100} value={note} onChange={(e) => setNote(e.target.value)} />
+              </FormField>
             </div>
           </div>
         </div>
@@ -101,7 +100,7 @@ export default function NewSale() {
         <div className="card overflow-hidden flex flex-col">
           <div className="card-header">
             <div className="flex items-center gap-3">
-              <ShoppingCart size={17} className="text-slate-500" />
+              <ShoppingCart size={17} style={{ color: 'var(--text-3)' }} />
               <span className="card-header-title">Cart</span>
             </div>
             {cart.length > 0 && <span className="badge badge-blue">{cart.length} item{cart.length > 1 ? 's' : ''}</span>}
@@ -123,11 +122,11 @@ export default function NewSale() {
                     {cart.map((c) => (
                       <tr key={c.product.id}>
                         <td className="font-medium text-slate-800">{c.product.name}</td>
-                        <td>{c.quantity}</td>
-                        <td className="text-slate-500">GHS {c.product.selling_price}</td>
-                        <td className="font-semibold">GHS {(c.quantity * Number(c.product.selling_price)).toFixed(2)}</td>
+                        <td className="mono">{c.quantity}</td>
+                        <td className="mono" style={{ color: 'var(--text-3)' }}>GHS {c.product.selling_price}</td>
+                        <td className="mono" style={{ fontWeight: 700 }}>GHS {(c.quantity * Number(c.product.selling_price)).toFixed(2)}</td>
                         <td>
-                          <button onClick={() => removeItem(c.product.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                          <button onClick={() => removeItem(c.product.id)} className="interactive-item" style={{ color: 'var(--text-3)', background: 'none', border: 'none', cursor: 'pointer' }}>
                             <Trash2 size={14} />
                           </button>
                         </td>
@@ -137,13 +136,17 @@ export default function NewSale() {
                 </table>
               </div>
 
-              <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
+              <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid var(--border)', background: 'var(--surface-2)' }}>
                 <div className="flex justify-between items-center" style={{ marginBottom: '1.25rem' }}>
-                  <span className="text-sm font-medium text-slate-600">Total Amount</span>
-                  <span className="text-2xl font-bold text-slate-900">GHS {total.toFixed(2)}</span>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-3)' }}>Total Amount</span>
+                  <span className="mono" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text)' }}>GHS {total.toFixed(2)}</span>
                 </div>
-                {errors.map((e, i) => <p key={i} className="text-red-500 text-sm mb-2">{e}</p>)}
-                <button onClick={() => submit.mutate()} disabled={submit.isPending || cart.length === 0} className="btn btn-success w-full">
+                {submitError && (
+                  <div className="alert alert-red" style={{ marginBottom: '1rem' }}>
+                    {getErrorMessage(submitError)}
+                  </div>
+                )}
+                <button onClick={() => submit.mutate()} disabled={submit.isPending || cart.length === 0} className="btn btn-success w-full interactive-item">
                   {submit.isPending ? 'Processing…' : 'Confirm Sale'}
                 </button>
               </div>

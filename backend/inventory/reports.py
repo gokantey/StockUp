@@ -489,3 +489,69 @@ class EndOfDaySummaryView(APIView):
                 'stock_in_value': float(stock_in_value),
             }
         })
+
+class EndOfDayExportView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        date_str = request.query_params.get('date')
+        if date_str:
+            try:
+                target_date = timezone.datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return HttpResponse('Invalid date format.', status=400)
+        else:
+            target_date = timezone.now().date()
+
+        sales_items = SaleItem.objects.filter(
+            sale__created_at__date=target_date,
+            sale__is_voided=False
+        ).annotate(
+            actual_cost=Coalesce('unit_cost_at_sale', F('product__cost_price')),
+            line_revenue=ExpressionWrapper(F('quantity') * F('unit_price_at_sale'), output_field=DecimalField(max_digits=14, decimal_places=2)),
+            line_cogs=ExpressionWrapper(F('quantity') * F('actual_cost'), output_field=DecimalField(max_digits=14, decimal_places=2)),
+        )
+
+        totals = sales_items.aggregate(
+            total_revenue=Sum('line_revenue'),
+            total_cogs=Sum('line_cogs'),
+            total_items=Sum('quantity'),
+        )
+        
+        revenue = float(totals['total_revenue'] or 0)
+        cogs = float(totals['total_cogs'] or 0)
+        profit = revenue - cogs
+        margin = round((profit / revenue * 100), 2) if revenue > 0 else 0
+        
+        transaction_count = Sale.objects.filter(
+            created_at__date=target_date, 
+            is_voided=False
+        ).count()
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="EOD_Report_{target_date}.csv"'
+        writer = csv.writer(response)
+        
+        writer.writerow(['R&J INVENTORY - END OF DAY REPORT', target_date.strftime('%Y-%m-%d')])
+        writer.writerow([])
+        writer.writerow(['SUMMARY METRICS'])
+        writer.writerow(['Metric', 'Value'])
+        writer.writerow(['Total Revenue', f'GHS {revenue:.2f}'])
+        writer.writerow(['Cost of Goods Sold', f'GHS {cogs:.2f}'])
+        writer.writerow(['Gross Profit', f'GHS {profit:.2f}'])
+        writer.writerow(['Gross Margin', f'{margin:.2f}%'])
+        writer.writerow(['Transactions', transaction_count])
+        writer.writerow(['Items Sold', totals['total_items'] or 0])
+        writer.writerow([])
+        
+        writer.writerow(['TOP PRODUCTS BY REVENUE'])
+        writer.writerow(['Product', 'Qty Sold', 'Revenue (GHS)'])
+        top_products = sales_items.values('product__name').annotate(
+            qty=Sum('quantity'),
+            rev=Sum('line_revenue')
+        ).order_by('-rev')[:10]
+        
+        for p in top_products:
+            writer.writerow([p['product__name'], p['qty'], f"{p['rev']:.2f}"])
+            
+        return response

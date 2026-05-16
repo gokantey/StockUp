@@ -135,15 +135,15 @@ export default function Reports() {
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           {activeTab === 'sales' ? (
             <>
-              <button onClick={() => handleExport('sales')} disabled={!!exporting} className="btn btn-ghost btn-sm">
-                <Download size={13} /> {exporting === 'sales' ? 'Exporting…' : 'Sales CSV'}
+              <button onClick={() => handleExport('sales')} disabled={!!exporting} className="btn btn-ghost btn-sm interactive-item">
+                <Download size={13} /> {exporting === 'sales' ? 'Exporting…' : 'Export Sales CSV'}
               </button>
-              <button onClick={() => handleExport('value')} disabled={!!exporting} className="btn btn-ghost btn-sm">
-                <Download size={13} /> {exporting === 'value' ? 'Exporting…' : 'Inventory CSV'}
+              <button onClick={() => handleExport('value')} disabled={!!exporting} className="btn btn-ghost btn-sm interactive-item">
+                <Download size={13} /> {exporting === 'value' ? 'Exporting…' : 'Export Inventory CSV'}
               </button>
             </>
           ) : (
-            <button onClick={() => handleExport('pl')} disabled={!!exporting} className="btn btn-ghost btn-sm">
+            <button onClick={() => handleExport('pl')} disabled={!!exporting} className="btn btn-ghost btn-sm interactive-item">
               <Download size={13} /> {exporting === 'pl' ? 'Exporting…' : 'P&L CSV'}
             </button>
           )}
@@ -151,8 +151,8 @@ export default function Reports() {
       </div>
 
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem' }}>
-        <button style={tabBtnStyle(activeTab === 'sales')} onClick={() => setActiveTab('sales')}>Sales & Inventory</button>
-        <button style={tabBtnStyle(activeTab === 'pl')} onClick={() => setActiveTab('pl')}>Profit & Loss</button>
+        <button className="interactive-item" style={tabBtnStyle(activeTab === 'sales')} onClick={() => setActiveTab('sales')}>Sales & Inventory</button>
+        <button className="interactive-item" style={tabBtnStyle(activeTab === 'pl')} onClick={() => setActiveTab('pl')}>Profit & Loss</button>
       </div>
 
       {/* Date filter */}

@@ -12,6 +12,7 @@ from inventory.reports import (
     ProfitLossReportView,
     ProfitLossExportView,
     EndOfDaySummaryView,
+    EndOfDayExportView,
 )
 
 from audit.views import AuditLogListView
@@ -24,6 +25,7 @@ urlpatterns = [
     path('api/', include('sales.urls')),
     path('api/audit/', AuditLogListView.as_view(), name='audit_logs'),
     path('api/reports/end-of-day/', EndOfDaySummaryView.as_view(), name='report_end_of_day'),
+    path('api/reports/end-of-day/export/', EndOfDayExportView.as_view(), name='report_end_of_day_export'),
     path('api/reports/low-stock/', LowStockReportView.as_view(), name='report_low_stock'),
     path('api/reports/stock-value/', StockValueReportView.as_view(), name='report_stock_value'),
     path('api/reports/sales-summary/', SalesSummaryReportView.as_view(), name='report_sales_summary'),

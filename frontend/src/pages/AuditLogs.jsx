@@ -2,6 +2,18 @@ import { useQuery } from '@tanstack/react-query'
 import { History, Search, User, Activity, Clock, Shield } from 'lucide-react'
 import api from '../api/axios'
 
+const modelMap = {
+  'PurchaseOrder': 'Purchase Order',
+  'PurchaseOrderItem': 'Order Item',
+  'Sale': 'Sale Transaction',
+  'SaleItem': 'Sold Item',
+  'Product': 'Product',
+  'Supplier': 'Supplier',
+  'User': 'Staff Member',
+  'StockMovement': 'Stock Update',
+  'Category': 'Category'
+}
+
 export default function AuditLogs() {
   const { data: logsData, isLoading } = useQuery({
     queryKey: ['audit-logs'],
@@ -33,6 +45,9 @@ export default function AuditLogs() {
             .replace('qty', 'quantity')
             .replace('repr', 'name')
             .replace('delta', 'change')
+            .replace('is_voided', 'status')
+            .replace('cost_price', 'unit cost')
+            .replace('selling_price', 'selling price')
 
           return (
             <div key={field} style={{ fontSize: '0.75rem' }}>
@@ -46,7 +61,7 @@ export default function AuditLogs() {
                 </>
               )}
               <span style={{ color: 'var(--green)', fontWeight: 700 }}>
-                {hasNew ? String(newVal) : 'Blank'}
+                {hasNew ? String(newVal) : (field === 'is_voided' ? 'Active' : 'Blank')}
               </span>
             </div>
           )
@@ -134,7 +149,7 @@ export default function AuditLogs() {
                           fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-3)', 
                           textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1 
                         }}>
-                          {log.model_name}
+                          {modelMap[log.model_name] || log.model_name}
                         </span>
                         <p style={{ fontSize: '0.85rem', fontWeight: 600, marginTop: '0.25rem' }}>
                           {log.object_repr || `ID: ${log.object_id}`}

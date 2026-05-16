@@ -49,9 +49,7 @@ export default function Login() {
 
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '3.5rem' }}>
-            <div style={{ width: 42, height: 42, borderRadius: '11px', background: 'linear-gradient(135deg, #3ba7ff, #1a6bdb)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 20px rgba(59,167,255,0.4)' }}>
-              <Package size={21} color="#fff" strokeWidth={2.3} />
-            </div>
+            <img src="/rj.svg" alt="R&J" style={{ width: 42, height: 42, borderRadius: '11px', flexShrink: 0, boxShadow: '0 6px 20px rgba(30,64,175,0.4)' }} />
             <div>
               <p style={{ color: '#fff', fontWeight: 800, fontSize: '1.125rem', fontFamily: "'Sora', sans-serif", letterSpacing: '-0.01em', lineHeight: 1.1 }}>R&J</p>
               <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '0.1rem' }}>Inventory Manager</p>
@@ -97,7 +95,7 @@ export default function Login() {
             <div>
               <label className="label">Email address</label>
               <input
-                type="email" required autoFocus className="input"
+                type="email" required autoFocus className={`input ${error ? 'input-error' : ''}`}
                 placeholder="admin@yourshop.com"
                 value={form.email}
                 onChange={e => setForm({ ...form, email: e.target.value })}
@@ -108,7 +106,7 @@ export default function Login() {
               <label className="label">Password</label>
               <div style={{ position: 'relative' }}>
                 <input
-                  type={showPw ? 'text' : 'password'} required className="input"
+                  type={showPw ? 'text' : 'password'} required className={`input ${error ? 'input-error' : ''}`}
                   style={{ paddingRight: '2.75rem' }} placeholder="••••••••"
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
@@ -121,16 +119,7 @@ export default function Login() {
 
             {/* Error — always rendered, height animates in */}
             {error && (
-              <div style={{
-                background: 'var(--red-light)',
-                border: '1px solid #f8b4b4',
-                borderLeft: '3px solid var(--red)',
-                borderRadius: '8px',
-                padding: '0.75rem 0.875rem',
-                fontSize: '0.845rem',
-                color: 'var(--red)',
-                fontWeight: 500,
-              }}>
+              <div className="alert alert-red">
                 {error}
               </div>
             )}
@@ -138,7 +127,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary"
+              className="btn btn-primary interactive-item"
               style={{ width: '100%', padding: '0.75rem', fontSize: '0.9375rem', marginTop: '0.25rem' }}
             >
               {loading

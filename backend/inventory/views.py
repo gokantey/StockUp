@@ -172,35 +172,44 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
         for item_data in items_data:
             item_id = item_data.get('id')
-            received_qty_now = item_data.get('received_qty_now', 0)
+            received_qty_now = item_data.get('received_qty_now', 0) # This is accepted qty
+            rejected_qty_now = item_data.get('rejected_qty_now', 0)
+            rej_note_now     = item_data.get('rejection_note_now', '').strip()
             
             try:
                 received_qty_now = int(received_qty_now)
-                if received_qty_now < 0:
+                rejected_qty_now = int(rejected_qty_now)
+                if received_qty_now < 0 or rejected_qty_now < 0:
                     raise ValueError
             except (ValueError, TypeError):
-                return Response({'detail': 'received_qty_now must be a non-negative integer.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'Quantities must be non-negative integers.'}, status=status.HTTP_400_BAD_REQUEST)
                 
-            if received_qty_now > 0 and item_id in po_items:
+            if (received_qty_now > 0 or rejected_qty_now > 0) and item_id in po_items:
                 item = po_items[item_id]
                 item.received_qty += received_qty_now
-                item.save(update_fields=['received_qty'])
+                item.rejected_qty += rejected_qty_now
+                if rej_note_now:
+                    timestamp = po.updated_at.strftime('%Y-%m-%d %H:%M')
+                    new_note = f"[{timestamp}] Rejected {rejected_qty_now}: {rej_note_now}"
+                    item.rejection_note = (item.rejection_note + "\n" + new_note).strip()
+                item.save(update_fields=['received_qty', 'rejected_qty', 'rejection_note'])
                 
-                # Update product stock
-                product = item.product
-                product.stock_quantity += received_qty_now
-                product.save(update_fields=['stock_quantity'])
-                
-                # Create StockMovement
-                StockMovement.objects.create(
-                    product=product,
-                    movement_type=StockMovement.IN,
-                    quantity=received_qty_now,
-                    unit_cost=item.unit_cost,
-                    supplier=po.supplier,
-                    created_by=request.user,
-                    note=f'PO Reception: {po.po_number}'
-                )
+                # Update product stock ONLY with accepted qty
+                if received_qty_now > 0:
+                    product = item.product
+                    product.stock_quantity += received_qty_now
+                    product.save(update_fields=['stock_quantity'])
+                    
+                    # Create StockMovement for accepted qty
+                    StockMovement.objects.create(
+                        product=product,
+                        movement_type=StockMovement.IN,
+                        quantity=received_qty_now,
+                        unit_cost=item.unit_cost,
+                        supplier=po.supplier,
+                        created_by=request.user,
+                        note=f'PO Reception (Accepted): {po.po_number}'
+                    )
 
         # Re-evaluate status
         for item in po.items.all():

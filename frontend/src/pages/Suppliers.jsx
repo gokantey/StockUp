@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, X, Truck, Pencil, Trash2, AlertTriangle, Phone, Mail, MapPin } from 'lucide-react'
+import { useForm } from 'react-hook-form'
 import api from '../api/axios'
+import FormField, { getErrorMessage } from '../components/FormField'
 
 const emptyForm = { name: '', contact_person: '', phone: '', email: '', address: '' }
 
 function Avatar({ name }) {
   const initials = name?.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
   return (
-    <div style={{ width: 34, height: 34, borderRadius: '9px', background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.7rem', fontWeight: 800, color: 'var(--teal)', fontFamily: 'DM Sans, sans-serif' }}>
+    <div style={{ width: 34, height: 34, borderRadius: '9px', background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.7rem', fontWeight: 800, color: 'var(--teal)', fontFamily: 'Outfit, sans-serif' }}>
       {initials}
     </div>
   )
@@ -18,8 +20,11 @@ export default function Suppliers() {
   const qc = useQueryClient()
   const [showForm,       setShowForm]       = useState(false)
   const [editing,        setEditing]        = useState(null)
-  const [form,           setForm]           = useState(emptyForm)
   const [confirmDelete,  setConfirmDelete]  = useState(null)
+
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm({
+    defaultValues: emptyForm
+  })
 
   const { data: suppliers = [], isLoading } = useQuery({
     queryKey: ['suppliers'],
@@ -35,9 +40,16 @@ export default function Suppliers() {
     onSuccess:  () => { qc.invalidateQueries(['suppliers']); setConfirmDelete(null) },
   })
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const openEdit  = (s) => { setEditing(s); setForm({ name: s.name, contact_person: s.contact_person, phone: s.phone, email: s.email, address: s.address }); setShowForm(true) }
-  const closeForm = () => { setShowForm(false); setEditing(null); setForm(emptyForm) }
+  const onSubmit = (data) => {
+    save.mutate(data)
+  }
+
+  const openEdit  = (s) => {
+    setEditing(s)
+    reset({ name: s.name, contact_person: s.contact_person, phone: s.phone, email: s.email, address: s.address })
+    setShowForm(true)
+  }
+  const closeForm = () => { setShowForm(false); setEditing(null); reset(emptyForm) }
 
   return (
     <div>
@@ -86,8 +98,8 @@ export default function Suppliers() {
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <button onClick={() => openEdit(s)} className="btn btn-ghost btn-sm"><Pencil size={12} /> Edit</button>
-                      <button onClick={() => setConfirmDelete(s)} className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }}><Trash2 size={12} /></button>
+                      <button onClick={() => openEdit(s)} className="btn btn-ghost btn-sm interactive-item"><Pencil size={12} /> Edit</button>
+                      <button onClick={() => setConfirmDelete(s)} className="btn btn-ghost btn-sm interactive-item" style={{ color: 'var(--red)' }}><Trash2 size={12} /></button>
                     </div>
                   </td>
                 </tr>
@@ -114,34 +126,62 @@ export default function Suppliers() {
               <h3 className="modal-title" style={{ margin: 0 }}>{editing ? 'Edit Supplier' : 'Add Supplier'}</h3>
               <button onClick={closeForm} style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
-            <form onSubmit={e => { e.preventDefault(); save.mutate(form) }} className="form-group">
-              <div>
-                <label className="label">Supplier Name *</label>
-                <input required className="input" placeholder="e.g. Accra Distributors Ltd" value={form.name} onChange={e => set('name', e.target.value)} />
-              </div>
+            <form onSubmit={handleSubmit(onSubmit)} className="form-group" noValidate>
+              <FormField label="Supplier Name" required error={errors.name?.message}>
+                <input 
+                  className={`input ${errors.name ? 'input-error' : ''}`}
+                  placeholder="e.g. Accra Distributors Ltd" 
+                  {...register('name', { required: 'Name is required', maxLength: { value: 100, message: 'Max 100 characters' } })} 
+                />
+              </FormField>
+
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Contact Person</label>
-                  <input className="input" placeholder="Full name" value={form.contact_person} onChange={e => set('contact_person', e.target.value)} />
-                </div>
-                <div>
-                  <label className="label">Phone</label>
-                  <input className="input" placeholder="0XX XXX XXXX" value={form.phone} onChange={e => set('phone', e.target.value)} />
-                </div>
+                <FormField label="Contact Person" error={errors.contact_person?.message}>
+                  <input 
+                    className={`input ${errors.contact_person ? 'input-error' : ''}`}
+                    placeholder="Full name" 
+                    {...register('contact_person', { maxLength: { value: 100, message: 'Max 100 characters' } })} 
+                  />
+                </FormField>
+                <FormField label="Phone" error={errors.phone?.message}>
+                  <input 
+                    className={`input ${errors.phone ? 'input-error' : ''}`}
+                    placeholder="0XX XXX XXXX" 
+                    {...register('phone', { 
+                      pattern: { value: /^[0-9+ ]+$/, message: 'Invalid phone number' },
+                      maxLength: { value: 20, message: 'Max 20 characters' }
+                    })} 
+                  />
+                </FormField>
               </div>
-              <div>
-                <label className="label">Email</label>
-                <input type="email" className="input" placeholder="supplier@example.com" value={form.email} onChange={e => set('email', e.target.value)} />
-              </div>
-              <div>
-                <label className="label">Address</label>
-                <textarea className="input" rows={2} placeholder="Optional" value={form.address} onChange={e => set('address', e.target.value)} />
-              </div>
+
+              <FormField label="Email" error={errors.email?.message}>
+                <input 
+                  type="email" 
+                  className={`input ${errors.email ? 'input-error' : ''}`}
+                  placeholder="supplier@example.com" 
+                  {...register('email', { 
+                    pattern: { value: /^\S+@\S+$/, message: 'Invalid email address' },
+                    maxLength: { value: 100, message: 'Max 100 characters' }
+                  })} 
+                />
+              </FormField>
+
+              <FormField label="Address" error={errors.address?.message}>
+                <textarea 
+                  className={`input ${errors.address ? 'input-error' : ''}`}
+                  rows={2} 
+                  placeholder="Optional" 
+                  {...register('address', { maxLength: { value: 255, message: 'Max 255 characters' } })} 
+                />
+              </FormField>
+
               {save.error && (
-                <p style={{ color: 'var(--red)', fontSize: '0.845rem', background: 'var(--red-dim)', borderRadius: '8px', padding: '0.7rem 1rem' }}>
-                  {JSON.stringify(save.error.response?.data)}
-                </p>
+                <div className="alert alert-red" style={{ fontSize: '0.845rem', padding: '0.75rem 1rem' }}>
+                  {getErrorMessage(save.error)}
+                </div>
               )}
+
               <div style={{ display: 'flex', gap: '0.625rem' }}>
                 <button type="submit" disabled={save.isPending} className="btn btn-primary" style={{ flex: 1 }}>
                   {save.isPending ? 'Saving…' : editing ? 'Save Changes' : 'Add Supplier'}

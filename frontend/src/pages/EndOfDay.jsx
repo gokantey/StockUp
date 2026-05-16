@@ -39,47 +39,61 @@ export default function EndOfDay() {
           <h1 className="page-title">End of Day Summary</h1>
           <p className="page-subtitle">Daily performance snapshot and reconciliation</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: '0.625rem', 
-            background: 'var(--surface)', 
-            border: '1px solid var(--border)', 
-            borderRadius: '10px', 
-            padding: '0.25rem 0.75rem',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            <Calendar size={15} style={{ color: 'var(--text-3)' }} />
-            <input 
-              type="date" 
-              style={{ 
-                border: 'none', 
-                outline: 'none', 
-                fontSize: '0.845rem', 
-                background: 'transparent',
-                fontFamily: 'inherit',
-                color: 'var(--text)',
-                padding: '0.35rem 0'
-              }} 
-              value={date} 
-              onChange={e => setDate(e.target.value)}
-            />
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.625rem', 
+              background: 'var(--surface)', 
+              border: '1px solid var(--border)', 
+              borderRadius: '10px', 
+              padding: '0.25rem 0.75rem',
+              boxShadow: 'var(--shadow-sm)'
+            }}>
+              <Calendar size={15} style={{ color: 'var(--text-3)' }} />
+              <input 
+                type="date" 
+                style={{ 
+                  border: 'none', 
+                  outline: 'none', 
+                  fontSize: '0.845rem', 
+                  background: 'transparent',
+                  fontFamily: 'inherit',
+                  color: 'var(--text)',
+                  padding: '0.35rem 0'
+                }} 
+                value={date} 
+                onChange={e => setDate(e.target.value)}
+              />
+            </div>
+            <button className="btn btn-ghost interactive-item" onClick={() => window.open(`${api.defaults.baseURL}/reports/end-of-day/export/?date=${date}`, '_blank')}>
+              <Download size={16} /> Export CSV
+            </button>
+            <button className="btn btn-ghost interactive-item" onClick={handlePrint}>
+              <Printer size={16} /> Print Report
+            </button>
           </div>
-          <button className="btn btn-ghost" onClick={handlePrint}>
-            <Printer size={16} /> Print Report
-          </button>
         </div>
-      </div>
 
       {/* Report Content */}
       <div id="printable-report">
         {/* Print Header (Only visible on print) */}
-        <div className="print-only" style={{ marginBottom: '2rem', textAlign: 'center' }}>
-          <h1 style={{ margin: 0 }}>R&J Inventory</h1>
-          <h2 style={{ margin: '0.5rem 0' }}>Daily Summary Report</h2>
-          <p style={{ color: '#666' }}>Date: {new Date(date).toLocaleDateString('en-GB', { dateStyle: 'full' })}</p>
-          <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid #eee' }} />
+        <div className="print-only" style={{ marginBottom: '3.5rem', textAlign: 'center', borderBottom: '2px solid var(--navy)', paddingBottom: '2rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 60, height: 60, borderRadius: '15px', background: 'var(--navy)', marginBottom: '1.25rem', color: '#fff' }}>
+            <img src="/rj.svg" alt="R&J" style={{ width: 44, height: 44 }} />
+          </div>
+          <h1 style={{ margin: 0, fontSize: '1.75rem', fontWeight: 900, color: 'var(--navy)', letterSpacing: '-0.02em' }}>R&J PROVISIONS</h1>
+          <p style={{ margin: '0.5rem 0', fontSize: '0.9rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.15em', fontWeight: 700 }}>End of Day Performance Report</p>
+          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '3rem' }}>
+            <div style={{ textAlign: 'left' }}>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Report Date</p>
+              <p style={{ fontSize: '0.9rem', fontWeight: 700 }}>{new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Generated At</p>
+              <p style={{ fontSize: '0.9rem', fontWeight: 700 }}>{new Date().toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+            </div>
+          </div>
         </div>
 
         {/* Metrics Grid */}

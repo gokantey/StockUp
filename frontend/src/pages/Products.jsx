@@ -1,9 +1,11 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, Pencil, X, Tag, Archive, ArchiveRestore, Package } from 'lucide-react'
+import { useForm } from 'react-hook-form'
 import api from '../api/axios'
 import useAuthStore from '../store/authStore'
 import Pagination from '../components/Pagination'
+import FormField, { getErrorMessage } from '../components/FormField'
 
 const PAGE_SIZE = 25
 const emptyForm = { name: '', category: '', unit: '', cost_price: '', selling_price: '', reorder_level: 10 }
@@ -18,9 +20,12 @@ export default function Products() {
   const [page,           setPage]           = useState(1)
   const [showForm,       setShowForm]       = useState(false)
   const [editing,        setEditing]        = useState(null)
-  const [form,           setForm]           = useState(emptyForm)
   const [newCat,         setNewCat]         = useState('')
   const [showCatInput,   setShowCatInput]   = useState(false)
+
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
+    defaultValues: emptyForm
+  })
 
   const showArchived = tab === 'archived'
   const showLow      = tab === 'low'
@@ -63,14 +68,28 @@ export default function Products() {
     mutationFn: name => api.post('/categories/', { name }),
     onSuccess:  res => {
       qc.invalidateQueries(['categories'])
-      setForm(f => ({ ...f, category: res.data.id }))
+      setValue('category', res.data.id)
       setNewCat(''); setShowCatInput(false)
     },
   })
 
-  const closeForm = () => { setShowForm(false); setEditing(null); setForm(emptyForm); setNewCat(''); setShowCatInput(false) }
-  const openEdit  = p => { setEditing(p); setForm({ name: p.name, category: p.category ?? '', unit: p.unit, cost_price: p.cost_price, selling_price: p.selling_price, reorder_level: p.reorder_level }); setShowForm(true) }
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const onSubmit = (data) => {
+    save.mutate(data)
+  }
+
+  const closeForm = () => { setShowForm(false); setEditing(null); reset(emptyForm); setNewCat(''); setShowCatInput(false) }
+  const openEdit  = p => { 
+    setEditing(p)
+    reset({ 
+      name: p.name, 
+      category: p.category ?? '', 
+      unit: p.unit ?? '', 
+      cost_price: p.cost_price, 
+      selling_price: p.selling_price, 
+      reorder_level: p.reorder_level 
+    })
+    setShowForm(true) 
+  }
 
   const tabs = [
     { key: 'all',      label: 'All Products', color: 'var(--blue)'  },
@@ -86,7 +105,7 @@ export default function Products() {
           <p className="page-subtitle">{totalCount} {showArchived ? 'archived' : showLow ? 'low stock' : 'active'} product{totalCount !== 1 ? 's' : ''}</p>
         </div>
         {user?.role === 'admin' && (
-          <button onClick={() => setShowForm(true)} className="btn btn-primary">
+          <button onClick={() => setShowForm(true)} className="btn btn-primary interactive-item">
             <Plus size={15} /> Add Product
           </button>
         )}
@@ -97,7 +116,7 @@ export default function Products() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 200, background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: '8px', padding: '0.55rem 0.875rem', boxShadow: 'var(--shadow-sm)' }}>
             <Search size={14} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
             <input type="text" placeholder="Search by name, SKU or category…"
-              style={{ flex: 1, fontSize: '0.845rem', outline: 'none', background: 'transparent', color: 'var(--text)', border: 'none', fontFamily: 'DM Sans, sans-serif' }}
+              style={{ flex: 1, fontSize: '0.845rem', outline: 'none', background: 'transparent', color: 'var(--text)', border: 'none', fontFamily: 'Inter, sans-serif' }}
               value={search} onChange={e => { setSearch(e.target.value); resetPage() }} />
             {search && <button onClick={() => { setSearch(''); resetPage() }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}><X size={13} /></button>}
           </div>
@@ -112,13 +131,9 @@ export default function Products() {
 
           <div style={{ display: 'flex', gap: '0.25rem', background: '#f1f5f9', borderRadius: '8px', padding: '3px' }}>
             {tabs.map(({ key, label, color }) => (
-              <button key={key} onClick={() => { setTab(key); resetPage() }} style={{
+              <button key={key} onClick={() => { setTab(key); resetPage() }} className={`tab-button ${tab === key ? 'active' : ''}`} style={{
+                color: tab === key ? color : 'var(--text-3)',
                 display: 'flex', alignItems: 'center', gap: '0.35rem',
-                padding: '0.38rem 0.875rem', borderRadius: '6px',
-                fontSize: '0.8rem', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.13s',
-                background: tab === key ? 'var(--surface)' : 'transparent',
-                color:      tab === key ? color : 'var(--text-3)',
-                boxShadow:  tab === key ? 'var(--shadow-sm)' : 'none',
               }}>
                 {key === 'archived' && <Archive size={12} />}
                 {label}
@@ -159,8 +174,8 @@ export default function Products() {
                     {user?.role === 'admin' && (
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          {!showArchived && <button onClick={() => openEdit(p)} className="btn btn-ghost btn-sm"><Pencil size={11} /> Edit</button>}
-                          <button onClick={() => toggleArchive.mutate({ id: p.id, is_active: showArchived })} className="btn btn-ghost btn-sm" style={{ color: showArchived ? 'var(--green)' : 'var(--text-3)' }}>
+                          {!showArchived && <button onClick={() => openEdit(p)} className="btn btn-ghost btn-sm interactive-item"><Pencil size={11} /> Edit</button>}
+                          <button onClick={() => toggleArchive.mutate({ id: p.id, is_active: showArchived })} className="btn btn-ghost btn-sm interactive-item" style={{ color: showArchived ? 'var(--green)' : 'var(--text-3)' }}>
                             {showArchived ? <><ArchiveRestore size={11} /> Restore</> : <Archive size={11} />}
                           </button>
                         </div>
@@ -187,50 +202,85 @@ export default function Products() {
               <h3 className="modal-title" style={{ margin: 0 }}>{editing ? 'Edit Product' : 'Add Product'}</h3>
               <button onClick={closeForm} style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
-            <form onSubmit={e => { e.preventDefault(); save.mutate(form) }} className="form-group">
-              <div>
-                <label className="label">Product Name *</label>
-                <input required className="input" placeholder="e.g. Milo 500g" value={form.name} onChange={e => set('name', e.target.value)} />
-              </div>
-              <div>
-                <label className="label">Category</label>
+            <form onSubmit={handleSubmit(onSubmit)} className="form-group" noValidate>
+              <FormField label="Product Name" required error={errors.name?.message}>
+                <input 
+                  className={`input ${errors.name ? 'input-error' : ''}`}
+                  placeholder="e.g. Milo 500g" 
+                  {...register('name', { required: 'Name is required', maxLength: { value: 100, message: 'Max 100 characters' } })} 
+                />
+              </FormField>
+
+              <FormField label="Category" error={errors.category?.message}>
                 {!showCatInput ? (
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <select className="input" style={{ flex: 1 }} value={form.category} onChange={e => set('category', e.target.value)}>
+                    <select className={`input ${errors.category ? 'input-error' : ''}`} style={{ flex: 1 }} {...register('category')}>
                       <option value="">— No category —</option>
                       {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
-                    <button type="button" onClick={() => setShowCatInput(true)} className="btn btn-ghost btn-sm" style={{ flexShrink: 0 }}><Tag size={12} /> New</button>
+                    <button type="button" onClick={() => setShowCatInput(true)} className="btn btn-ghost btn-sm interactive-item" style={{ flexShrink: 0 }}><Tag size={12} /> New</button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <input autoFocus className="input" style={{ flex: 1 }} placeholder="Category name" value={newCat} onChange={e => setNewCat(e.target.value)} />
-                    <button type="button" disabled={!newCat.trim() || addCategory.isPending} onClick={() => addCategory.mutate(newCat.trim())} className="btn btn-primary btn-sm">{addCategory.isPending ? '…' : 'Add'}</button>
-                    <button type="button" onClick={() => { setShowCatInput(false); setNewCat('') }} className="btn btn-ghost btn-sm"><X size={13} /></button>
+                    <button type="button" disabled={!newCat.trim() || addCategory.isPending} onClick={() => addCategory.mutate(newCat.trim())} className="btn btn-primary btn-sm interactive-item">{addCategory.isPending ? '…' : 'Add'}</button>
+                    <button type="button" onClick={() => { setShowCatInput(false); setNewCat('') }} className="btn btn-ghost btn-sm interactive-item"><X size={13} /></button>
                   </div>
                 )}
-              </div>
-              <div>
-                <label className="label">Unit of Measurement</label>
-                <input className="input" placeholder="e.g. bottle, kg, sachet, piece" value={form.unit} onChange={e => set('unit', e.target.value)} />
-                <p className="hint">How you count this product when selling or restocking.</p>
-              </div>
+              </FormField>
+
+              <FormField label="Unit of Measurement" error={errors.unit?.message} hint="How you count this product when selling or restocking.">
+                <input 
+                  className={`input ${errors.unit ? 'input-error' : ''}`}
+                  placeholder="e.g. bottle, kg, sachet, piece" 
+                  {...register('unit', { maxLength: { value: 50, message: 'Max 50 characters' } })} 
+                />
+              </FormField>
+
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Cost Price (GHS) *</label>
-                  <input required type="number" step="0.01" min="0" className="input" placeholder="0.00" value={form.cost_price} onChange={e => set('cost_price', e.target.value)} />
-                </div>
-                <div>
-                  <label className="label">Selling Price (GHS) *</label>
-                  <input required type="number" step="0.01" min="0" className="input" placeholder="0.00" value={form.selling_price} onChange={e => set('selling_price', e.target.value)} />
-                </div>
+                <FormField label="Cost Price (GHS)" required error={errors.cost_price?.message}>
+                  <input 
+                    type="number" step="0.01" 
+                    className={`input ${errors.cost_price ? 'input-error' : ''}`}
+                    placeholder="0.00" 
+                    {...register('cost_price', { 
+                      required: 'Required', 
+                      min: { value: 0, message: 'Min 0' },
+                      valueAsNumber: true 
+                    })} 
+                  />
+                </FormField>
+                <FormField label="Selling Price (GHS)" required error={errors.selling_price?.message}>
+                  <input 
+                    type="number" step="0.01" 
+                    className={`input ${errors.selling_price ? 'input-error' : ''}`}
+                    placeholder="0.00" 
+                    {...register('selling_price', { 
+                      required: 'Required', 
+                      min: { value: 0, message: 'Min 0' },
+                      valueAsNumber: true 
+                    })} 
+                  />
+                </FormField>
               </div>
-              <div>
-                <label className="label">Reorder Level</label>
-                <input type="number" min="0" className="input" value={form.reorder_level} onChange={e => set('reorder_level', e.target.value)} />
-                <p className="hint">Alert triggers when stock drops to or below this number.</p>
-              </div>
-              {save.error && <p style={{ color: 'var(--red)', fontSize: '0.845rem', background: 'var(--red-light)', border: '1px solid #f8b4b4', borderRadius: '8px', padding: '0.7rem 0.875rem' }}>{JSON.stringify(save.error.response?.data)}</p>}
+
+              <FormField label="Reorder Level" error={errors.reorder_level?.message} hint="Alert triggers when stock drops to or below this number.">
+                <input 
+                  type="number" 
+                  className={`input ${errors.reorder_level ? 'input-error' : ''}`}
+                  {...register('reorder_level', { 
+                    min: { value: 0, message: 'Min 0' },
+                    valueAsNumber: true 
+                  })} 
+                />
+              </FormField>
+
+              {save.error && (
+                <div className="alert alert-red" style={{ fontSize: '0.845rem', padding: '0.75rem 1rem' }}>
+                  {getErrorMessage(save.error)}
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '0.625rem', paddingTop: '0.25rem' }}>
                 <button type="submit" disabled={save.isPending} className="btn btn-primary" style={{ flex: 1 }}>{save.isPending ? 'Saving…' : 'Save Product'}</button>
                 <button type="button" onClick={closeForm} className="btn btn-ghost" style={{ flex: 1 }}>Cancel</button>

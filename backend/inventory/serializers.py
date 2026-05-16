@@ -84,8 +84,8 @@ class PurchaseOrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PurchaseOrderItem
-        fields = ['id', 'product', 'product_name', 'product_sku', 'ordered_qty', 'received_qty', 'unit_cost']
-        read_only_fields = ['id', 'received_qty']
+        fields = ['id', 'product', 'product_name', 'product_sku', 'ordered_qty', 'received_qty', 'rejected_qty', 'rejection_note', 'unit_cost']
+        read_only_fields = ['id', 'received_qty', 'rejected_qty', 'rejection_note']
 
 
 class PurchaseOrderSerializer(serializers.ModelSerializer):

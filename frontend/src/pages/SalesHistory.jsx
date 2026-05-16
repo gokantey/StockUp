@@ -63,7 +63,7 @@ export default function SalesHistory() {
           <h1 className="page-title">Sales History</h1>
           <p className="page-subtitle">{totalCount} transaction{totalCount !== 1 ? 's' : ''}</p>
         </div>
-        <button onClick={handleExport} disabled={exporting || totalCount === 0} className="btn btn-ghost">
+        <button onClick={handleExport} disabled={exporting || totalCount === 0} className="btn btn-ghost interactive-item">
           <Download size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
         </button>
       </div>
@@ -83,7 +83,7 @@ export default function SalesHistory() {
                 onChange={e => handleSearch(e.target.value)}
               />
               {search && (
-                <button onClick={() => handleSearch('')} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}>
+                <button onClick={() => handleSearch('')} className="interactive-item" style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}>
                   <X size={13} />
                 </button>
               )}
@@ -110,7 +110,7 @@ export default function SalesHistory() {
           </div>
 
           {hasFilters && (
-            <button onClick={clearAll} className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-end' }}>
+            <button onClick={clearAll} className="btn btn-ghost btn-sm interactive-item" style={{ alignSelf: 'flex-end' }}>
               Clear
             </button>
           )}
@@ -154,7 +154,7 @@ export default function SalesHistory() {
                       ? <span className="badge badge-red">Voided</span>
                       : <span className="badge badge-teal">Complete</span>}
                   </td>
-                  <td><Link to={`/sales/${s.id}`} className="btn btn-ghost btn-sm"><Receipt size={12} /> View</Link></td>
+                  <td><Link to={`/sales/${s.id}`} className="btn btn-ghost btn-sm interactive-item"><Receipt size={12} /> View</Link></td>
                 </tr>
               ))}
               {sales.length === 0 && (

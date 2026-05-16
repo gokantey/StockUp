@@ -141,9 +141,7 @@ export default function Layout({ children }) {
 
         <div style={{ padding: '1.5rem 1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <div style={{ width: 38, height: 38, borderRadius: '10px', flexShrink: 0, background: 'linear-gradient(135deg, #3ba7ff, #1a6bdb)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 14px rgba(59,167,255,0.4)' }}>
-              <Package size={19} color="#fff" strokeWidth={2.3} />
-            </div>
+            <img src="/rj.svg" alt="R&J" style={{ width: 38, height: 38, borderRadius: '10px', flexShrink: 0, boxShadow: '0 4px 14px rgba(30,64,175,0.4)' }} />
             <div>
               <p style={{ color: '#fff', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.01em', lineHeight: 1.2, fontFamily: "'Sora', sans-serif" }}>R&J</p>
               <p style={{ color: 'var(--navy-muted)', fontSize: '0.67rem', marginTop: '0.1rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Inventory</p>
@@ -173,7 +171,14 @@ export default function Layout({ children }) {
         <nav style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 0.875rem' }}>
           <p style={{ color: 'rgba(255,255,255,0.18)', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.625rem', paddingLeft: '0.875rem' }}>Main Menu</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>
-            {nav.map(item => <NavItem key={item.to} {...item} />)}
+            {nav
+              .filter(item => {
+                if (user?.role !== 'admin') {
+                  return !['Suppliers', 'Purchase Orders'].includes(item.label);
+                }
+                return true;
+              })
+              .map(item => <NavItem key={item.to} {...item} />)}
           </div>
 
           {user?.role === 'admin' && (

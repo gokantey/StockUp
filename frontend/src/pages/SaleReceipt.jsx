@@ -40,97 +40,143 @@ export default function SaleReceipt() {
         <h1 className="page-title">Sale Receipt</h1>
         <div className="flex gap-2">
           {user?.role === 'admin' && !sale.is_voided && (
-            <button onClick={() => setShowVoidModal(true)} className="btn btn-danger btn-sm">
+            <button onClick={() => setShowVoidModal(true)} className="btn btn-danger btn-sm interactive-item">
               <Ban size={14} /> Void Sale
             </button>
           )}
-          <button onClick={() => window.print()} className="btn btn-ghost btn-sm">
+          <button onClick={() => window.print()} className="btn btn-ghost btn-sm interactive-item">
             <Printer size={14} /> Print
           </button>
-          <Link to="/sales/new" className="btn btn-primary btn-sm">
+          <Link to="/sales/new" className="btn btn-primary btn-sm interactive-item">
             <ShoppingCart size={14} /> New Sale
           </Link>
         </div>
       </div>
 
-      <div className="card" style={{ padding: '2.25rem 2rem' }} id="receipt">
+      <div className="card" style={{ padding: '3rem 2.5rem', background: '#fff', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }} id="receipt">
 
-        {/* Voided banner */}
+        {/* Subtle decorative edge */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: 'var(--teal)' }} />
+
+        {/* Voided banner - more professional */}
         {sale.is_voided && (
           <div style={{
-            background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '0.875rem',
-            padding: '1rem 1.25rem', marginBottom: '1.5rem',
-            display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+            position: 'absolute', top: 40, right: -35, background: 'var(--red)', color: '#fff',
+            padding: '0.5rem 3rem', transform: 'rotate(45deg)', fontWeight: 800, fontSize: '0.75rem',
+            textTransform: 'uppercase', letterSpacing: '0.1em', boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
+            zIndex: 10
           }}>
-            <Ban size={16} style={{ color: '#dc2626', flexShrink: 0, marginTop: 2 }} />
-            <div>
-              <p style={{ fontWeight: 700, color: '#dc2626', fontSize: '0.875rem' }}>This sale has been voided</p>
-              <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '0.2rem' }}>Reason: {sale.void_reason}</p>
-              {sale.voided_by_name && (
-                <p style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                  By {sale.voided_by_name} · {new Date(sale.voided_at).toLocaleString()}
-                </p>
-              )}
-            </div>
+            Voided
           </div>
         )}
 
         {/* Header */}
-        <div className="text-center mb-6 pb-5 border-b border-dashed border-slate-200">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-xl mb-3">
-            <Package size={20} color="white" />
+        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 56, height: 56, borderRadius: '14px', background: 'var(--navy)', marginBottom: '1rem', color: '#fff' }}>
+            <img src="/rj.svg" alt="R&J" style={{ width: 42, height: 42 }} />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">R&J</h2>
-          <p className="text-slate-400 text-sm mt-0.5">Provision Shop</p>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--navy)', marginBottom: '0.25rem', letterSpacing: '-0.02em' }}>R&J PROVISIONS</h2>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 500 }}>Official Sales Receipt</p>
+          <div style={{ marginTop: '1.25rem', padding: '0.75rem', border: '1px solid #f1f5f9', borderRadius: '8px', display: 'inline-block' }}>
+
+          </div>
         </div>
 
-        {/* Meta */}
-        <div className="flex justify-between text-xs text-slate-500 mb-5">
-          <span>Receipt <span className="font-mono font-semibold">#{String(sale.id).padStart(4, '0')}</span></span>
-          <span>{new Date(sale.created_at).toLocaleString()}</span>
+        {/* Meta Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem', padding: '1rem 0', borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0' }}>
+          <div>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Receipt Number</p>
+            <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>#{String(sale.id).padStart(6, '0')}</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Date & Time</p>
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text)' }}>{new Date(sale.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
+          <div>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Cashier</p>
+            <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text)' }}>{sale.created_by_name}</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Status</p>
+            <span style={{
+              fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px',
+              background: sale.is_voided ? 'var(--red-light)' : 'var(--teal-light)',
+              color: sale.is_voided ? 'var(--red)' : 'var(--teal)'
+            }}>
+              {sale.is_voided ? 'VOIDED' : 'PAID'}
+            </span>
+          </div>
         </div>
 
-        {/* Items */}
-        <table className="w-full text-sm mb-5" style={{ opacity: sale.is_voided ? 0.5 : 1 }}>
+        {/* Items Table */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem', opacity: sale.is_voided ? 0.4 : 1 }}>
           <thead>
-            <tr className="border-b border-slate-100">
-              <th className="text-left py-2 text-xs font-semibold text-slate-500 uppercase">Item</th>
-              <th className="text-center py-2 text-xs font-semibold text-slate-500 uppercase">Qty</th>
-              <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Price</th>
-              <th className="text-right py-2 text-xs font-semibold text-slate-500 uppercase">Total</th>
+            <tr style={{ borderBottom: '2px solid var(--navy)' }}>
+              <th style={{ textAlign: 'left', padding: '0.75rem 0', fontSize: '0.7rem', fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase' }}>Description</th>
+              <th style={{ textAlign: 'center', padding: '0.75rem 0', fontSize: '0.7rem', fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase' }}>Qty</th>
+              <th style={{ textAlign: 'right', padding: '0.75rem 0', fontSize: '0.7rem', fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase' }}>Price</th>
+              <th style={{ textAlign: 'right', padding: '0.75rem 0', fontSize: '0.7rem', fontWeight: 800, color: 'var(--navy)', textTransform: 'uppercase' }}>Amount</th>
             </tr>
           </thead>
           <tbody>
             {sale.items.map((item) => (
-              <tr key={item.id} className="border-b border-slate-50">
-                <td className="py-2.5 text-slate-800">{item.product_name}</td>
-                <td className="py-2.5 text-center text-slate-600">{item.quantity}</td>
-                <td className="py-2.5 text-right text-slate-600">GHS {item.unit_price_at_sale}</td>
-                <td className="py-2.5 text-right font-semibold text-slate-800">GHS {Number(item.line_total).toFixed(2)}</td>
+              <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <td style={{ padding: '0.875rem 0', fontSize: '0.845rem', color: 'var(--text)', fontWeight: 500 }}>{item.product_name}</td>
+                <td style={{ padding: '0.875rem 0', textAlign: 'center', fontSize: '0.845rem', color: 'var(--text-2)' }}>{item.quantity}</td>
+                <td style={{ padding: '0.875rem 0', textAlign: 'right', fontSize: '0.845rem', color: 'var(--text-2)' }}>{Number(item.unit_price_at_sale).toFixed(2)}</td>
+                <td style={{ padding: '0.875rem 0', textAlign: 'right', fontSize: '0.845rem', fontWeight: 700, color: 'var(--text)' }}>{Number(item.line_total).toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
         </table>
 
-        {/* Total */}
-        <div style={{
-          background: sale.is_voided ? '#f1f5f9' : '#f8fafc',
-          borderRadius: '0.875rem', padding: '1rem 1.25rem',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          opacity: sale.is_voided ? 0.5 : 1,
-        }}>
-          <span className="font-semibold text-slate-700">Total</span>
-          <span style={{ fontSize: '1.5rem', fontWeight: 800, color: sale.is_voided ? '#94a3b8' : '#0f172a', textDecoration: sale.is_voided ? 'line-through' : 'none' }}>
-            GHS {Number(sale.total).toFixed(2)}
-          </span>
+        {/* Calculation Summary */}
+        <div style={{ marginLeft: 'auto', maxWidth: '180px', marginBottom: '2.5rem', opacity: sale.is_voided ? 0.4 : 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-3)' }}>Subtotal</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>GHS {Number(sale.total).toFixed(2)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-3)' }}>Tax (0%)</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>0.00</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.75rem', borderTop: '2px solid var(--navy)' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--navy)' }}>TOTAL</span>
+            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--navy)', textDecoration: sale.is_voided ? 'line-through' : 'none' }}>
+              GHS {Number(sale.total).toFixed(2)}
+            </span>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-4 pt-4 border-t border-dashed border-slate-200 text-xs text-slate-400 text-center space-y-1">
-          {sale.note && <p>Note: {sale.note}</p>}
-          <p>Served by: {sale.created_by_name}</p>
-          <p className="mt-2">Thank you for your purchase!</p>
+        {/* Footer & Barcode */}
+        <div style={{ textAlign: 'center', paddingTop: '2rem', borderTop: '1px dashed #e2e8f0' }}>
+          {sale.note && (
+            <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', marginBottom: '1.5rem', textAlign: 'left' }}>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-3)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Note</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>{sale.note}</p>
+            </div>
+          )}
+
+          <p style={{ fontSize: '0.845rem', fontWeight: 600, color: 'var(--navy)', marginBottom: '0.5rem' }}>Thank you for your business!</p>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>Please keep this receipt for your records.</p>
+
+          {/* Simulated Barcode */}
+          <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '2px', height: '32px', marginBottom: '0.5rem' }}>
+              {[2, 4, 1, 3, 2, 1, 4, 2, 3, 1, 2, 4, 1, 3, 2, 1, 4].map((w, i) => (
+                <div key={i} style={{ width: w, background: '#1e293b', height: '100%' }} />
+              ))}
+            </div>
+            <p style={{ fontSize: '0.6rem', color: 'var(--text-3)', letterSpacing: '0.4em', fontFamily: 'var(--font-mono)' }}>* {String(sale.id).padStart(8, '0')} *</p>
+          </div>
         </div>
+
+        {sale.is_voided && sale.void_reason && (
+          <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--red-light)', borderRadius: '8px', border: '1px solid #fecaca' }}>
+            <p style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--red)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Void Information</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--red)' }}><strong>Reason:</strong> {sale.void_reason}</p>
+          </div>
+        )}
       </div>
 
       {/* Void confirmation modal */}
@@ -173,11 +219,11 @@ export default function SaleReceipt() {
                 <button
                   onClick={() => voidSale.mutate()}
                   disabled={!voidReason.trim() || voidSale.isPending}
-                  className="btn btn-danger flex-1"
+                  className="btn btn-danger flex-1 interactive-item"
                 >
                   {voidSale.isPending ? 'Voiding…' : 'Yes, Void Sale'}
                 </button>
-                <button onClick={() => setShowVoidModal(false)} className="btn btn-ghost flex-1">Cancel</button>
+                <button onClick={() => setShowVoidModal(false)} className="btn btn-ghost flex-1 interactive-item">Cancel</button>
               </div>
             </div>
           </div>

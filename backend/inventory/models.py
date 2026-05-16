@@ -103,6 +103,8 @@ class PurchaseOrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='po_items')
     ordered_qty = models.PositiveIntegerField()
     received_qty = models.PositiveIntegerField(default=0)
+    rejected_qty = models.PositiveIntegerField(default=0)
+    rejection_note = models.TextField(blank=True)
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):

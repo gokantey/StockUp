@@ -88,7 +88,7 @@ export default function Dashboard() {
         <p className="section-title">Quick Actions</p>
         <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: '0.875rem' }}>
           {quickActions.map(({ to, label, Icon, color }) => (
-            <Link key={to} to={to} className="action-tile">
+            <Link key={to} to={to} className="action-tile interactive-item">
               <div className="action-tile-icon" style={{ background: `${color}18`, color }}>
                 <Icon size={20} strokeWidth={1.8} />
               </div>
@@ -107,7 +107,7 @@ export default function Dashboard() {
             </div>
             <div style={{ display: 'flex', gap: '0.25rem', background: '#f1f5f9', borderRadius: '999px', padding: '3px' }}>
               {DAYS.map(({ label, days: d }) => (
-                <button key={d} onClick={() => setDays(d)} style={{
+                <button key={d} onClick={() => setDays(d)} className="interactive-item" style={{
                   padding: '0.28rem 0.75rem', borderRadius: '999px', fontSize: '0.74rem', fontWeight: 600,
                   border: 'none', cursor: 'pointer', transition: 'all 0.13s',
                   background: days === d ? 'var(--blue)' : 'transparent',

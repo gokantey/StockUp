@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, X, Pencil, Shield, User, AlertTriangle, Eye, EyeOff, KeyRound } from 'lucide-react'
+import { useForm } from 'react-hook-form'
 import api from '../api/axios'
 import useAuthStore from '../store/authStore'
+import FormField, { getErrorMessage } from '../components/FormField'
 
 const emptyForm = { full_name: '', email: '', password: '', role: 'staff' }
 
@@ -22,7 +24,6 @@ export default function Users() {
 
   const [showForm,      setShowForm]      = useState(false)
   const [editing,       setEditing]       = useState(null)
-  const [form,          setForm]          = useState(emptyForm)
   const [showPw,        setShowPw]        = useState(false)
 
   const [resetTarget,   setResetTarget]   = useState(null)
@@ -31,6 +32,10 @@ export default function Users() {
   const [resetSuccess,  setResetSuccess]  = useState('')
 
   const [confirmDelete, setConfirmDelete] = useState(null)
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    defaultValues: emptyForm
+  })
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -60,9 +65,17 @@ export default function Users() {
     onSuccess:  () => { qc.invalidateQueries(['users']); setConfirmDelete(null) },
   })
 
-  const set       = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const openEdit  = (u) => { setEditing(u); setForm({ full_name: u.full_name, email: u.email, password: '', role: u.role }); setShowPw(false); setShowForm(true) }
-  const closeForm = () => { setShowForm(false); setEditing(null); setForm(emptyForm); setShowPw(false) }
+  const onSubmit = (data) => {
+    save.mutate(data)
+  }
+
+  const openEdit  = (u) => { 
+    setEditing(u)
+    reset({ full_name: u.full_name, email: u.email, password: '', role: u.role })
+    setShowPw(false)
+    setShowForm(true) 
+  }
+  const closeForm = () => { setShowForm(false); setEditing(null); reset(emptyForm); setShowPw(false) }
   const openReset  = (u) => { setResetTarget(u); setResetPw(''); setShowResetPw(false); setResetSuccess('') }
   const closeReset = () => { setResetTarget(null); setResetPw(''); setResetSuccess('') }
 
@@ -76,15 +89,15 @@ export default function Users() {
           <h1 className="page-title">Users</h1>
           <p className="page-subtitle">{users.length} team member{users.length !== 1 ? 's' : ''}</p>
         </div>
-        <button onClick={() => setShowForm(true)} className="btn btn-primary">
+        <button onClick={() => setShowForm(true)} className="btn btn-primary interactive-item">
           <Plus size={15} /> Add User
         </button>
       </div>
 
       {/* Role summary */}
       <div className="grid grid-cols-2" style={{ gap: '1rem', marginBottom: '1.5rem', maxWidth: 480 }}>
-        <div style={{ background: 'var(--bg-3)', border: '1px solid rgba(0,212,170,0.18)', borderRadius: 'var(--radius-xl)', padding: '1.125rem 1.375rem', display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-          <div style={{ width: 34, height: 34, borderRadius: '9px', background: 'var(--teal-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '1.125rem 1.375rem', display: 'flex', alignItems: 'center', gap: '0.875rem', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ width: 34, height: 34, borderRadius: '9px', background: 'var(--teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Shield size={16} style={{ color: 'var(--teal)' }} />
           </div>
           <div>
@@ -92,8 +105,8 @@ export default function Users() {
             <p style={{ fontSize: '0.745rem', color: 'var(--text-3)', marginTop: '0.2rem' }}>Admin{admins.length !== 1 ? 's' : ''}</p>
           </div>
         </div>
-        <div style={{ background: 'var(--bg-3)', border: '1px solid rgba(59,139,255,0.18)', borderRadius: 'var(--radius-xl)', padding: '1.125rem 1.375rem', display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-          <div style={{ width: 34, height: 34, borderRadius: '9px', background: 'var(--blue-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-xl)', padding: '1.125rem 1.375rem', display: 'flex', alignItems: 'center', gap: '0.875rem', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ width: 34, height: 34, borderRadius: '9px', background: 'var(--blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <User size={16} style={{ color: 'var(--blue)' }} />
           </div>
           <div>
@@ -110,61 +123,63 @@ export default function Users() {
             <div className="spinner" />
           </div>
         ) : (
-          <table className="table">
-            <thead>
-              <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <Avatar name={u.full_name} role={u.role} />
-                      <p style={{ fontWeight: 600, color: 'var(--text)', fontSize: '0.875rem' }}>
-                        {u.full_name}
-                        {u.id === me?.id && (
-                          <span style={{ marginLeft: '0.4rem', fontSize: '0.65rem', fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-dim)', borderRadius: '999px', padding: '0.08rem 0.45rem' }}>You</span>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <Avatar name={u.full_name} role={u.role} />
+                        <p style={{ fontWeight: 600, color: 'var(--text)', fontSize: '0.875rem' }}>
+                          {u.full_name}
+                          {u.id === me?.id && (
+                            <span style={{ marginLeft: '0.4rem', fontSize: '0.65rem', fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-light)', borderRadius: '999px', padding: '0.08rem 0.45rem' }}>You</span>
+                          )}
+                        </p>
+                      </div>
+                    </td>
+                    <td style={{ fontSize: '0.845rem', color: 'var(--text-2)' }}>{u.email}</td>
+                    <td>
+                      <span className={`badge ${u.role === 'admin' ? 'badge-teal' : 'badge-blue'}`}>
+                        {u.role === 'admin' ? <><Shield size={10} /> Admin</> : <><User size={10} /> Staff</>}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${u.is_active ? 'badge-green' : 'badge-gray'}`}>
+                        {u.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button onClick={() => openEdit(u)} className="btn btn-ghost btn-sm interactive-item">
+                          <Pencil size={12} /> Edit
+                        </button>
+                        <button onClick={() => openReset(u)} className="btn btn-ghost btn-sm interactive-item" style={{ color: 'var(--amber)' }}>
+                          <KeyRound size={12} /> Reset PW
+                        </button>
+                        {u.id !== me?.id && (
+                          <button onClick={() => setConfirmDelete(u)} className="btn btn-ghost btn-sm interactive-item" style={{ color: 'var(--red)' }}>
+                            <AlertTriangle size={12} /> Deactivate
+                        </button>
                         )}
-                      </p>
-                    </div>
-                  </td>
-                  <td style={{ fontSize: '0.845rem', color: 'var(--text-2)' }}>{u.email}</td>
-                  <td>
-                    <span className={`badge ${u.role === 'admin' ? 'badge-teal' : 'badge-blue'}`}>
-                      {u.role === 'admin' ? <><Shield size={10} /> Admin</> : <><User size={10} /> Staff</>}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${u.is_active ? 'badge-green' : 'badge-gray'}`}>
-                      {u.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <button onClick={() => openEdit(u)} className="btn btn-ghost btn-sm">
-                        <Pencil size={12} /> Edit
-                      </button>
-                      <button onClick={() => openReset(u)} className="btn btn-ghost btn-sm" style={{ color: 'var(--amber)' }}>
-                        <KeyRound size={12} /> Reset PW
-                      </button>
-                      {u.id !== me?.id && (
-                        <button onClick={() => setConfirmDelete(u)} className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }}>
-                          <AlertTriangle size={12} /> Deactivate
-                      </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {users.length === 0 && (
-                <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-3)', fontSize: '0.875rem' }}>
-                    No users found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {users.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '3.5rem', color: 'var(--text-3)', fontSize: '0.875rem' }}>
+                      No users found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -176,48 +191,63 @@ export default function Users() {
               <h3 className="modal-title" style={{ margin: 0 }}>{editing ? 'Edit User' : 'Add User'}</h3>
               <button onClick={closeForm} style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer' }}><X size={18} /></button>
             </div>
-            <form onSubmit={e => { e.preventDefault(); save.mutate(form) }} className="form-group">
-              <div>
-                <label className="label">Full Name *</label>
-                <input required className="input" placeholder="John Mensah" value={form.full_name} onChange={e => set('full_name', e.target.value)} />
-              </div>
-              <div>
-                <label className="label">Email *</label>
-                <input required type="email" className="input" placeholder="user@example.com" value={form.email} onChange={e => set('email', e.target.value)} />
-                <p className="hint">Can be a real email or a placeholder like staff1@shop.local</p>
-              </div>
+            <form onSubmit={handleSubmit(onSubmit)} className="form-group" noValidate>
+              <FormField label="Full Name" required error={errors.full_name?.message}>
+                <input 
+                  className={`input ${errors.full_name ? 'input-error' : ''}`}
+                  placeholder="John Mensah" 
+                  {...register('full_name', { required: 'Full name is required', maxLength: { value: 100, message: 'Max 100 characters' } })} 
+                />
+              </FormField>
+
+              <FormField label="Email" required error={errors.email?.message} hint="Can be a real email or a placeholder like staff1@shop.local">
+                <input 
+                  type="email" 
+                  className={`input ${errors.email ? 'input-error' : ''}`}
+                  placeholder="user@example.com" 
+                  {...register('email', { 
+                    required: 'Email is required',
+                    pattern: { value: /^\S+@\S+$/, message: 'Invalid email address' },
+                    maxLength: { value: 100, message: 'Max 100 characters' }
+                  })} 
+                />
+              </FormField>
+
               {!editing && (
-                <div>
-                  <label className="label">Password *</label>
+                <FormField label="Password" required error={errors.password?.message} hint="Share this with the staff member directly.">
                   <div style={{ position: 'relative' }}>
                     <KeyRound size={14} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', pointerEvents: 'none' }} />
                     <input
                       type={showPw ? 'text' : 'password'}
-                      required className="input"
+                      className={`input ${errors.password ? 'input-error' : ''}`}
                       style={{ paddingLeft: '2.5rem', paddingRight: '2.75rem' }}
                       placeholder="Min 8 characters"
-                      value={form.password}
-                      onChange={e => set('password', e.target.value)}
+                      {...register('password', { 
+                        required: 'Password is required', 
+                        minLength: { value: 8, message: 'Min 8 characters' },
+                        maxLength: { value: 50, message: 'Max 50 characters' }
+                      })}
                     />
                     <button type="button" onClick={() => setShowPw(v => !v)} style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', display: 'flex' }}>
                       {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
-                  <p className="hint">Share this with the staff member directly — verbally or via WhatsApp.</p>
-                </div>
+                </FormField>
               )}
-              <div>
-                <label className="label">Role *</label>
-                <select required className="input" value={form.role} onChange={e => set('role', e.target.value)}>
+
+              <FormField label="Role" required error={errors.role?.message}>
+                <select className={`input ${errors.role ? 'input-error' : ''}`} {...register('role', { required: 'Role is required' })}>
                   <option value="staff">Staff — can record sales and stock-in</option>
                   <option value="admin">Admin — full access including users and adjustments</option>
                 </select>
-              </div>
+              </FormField>
+
               {save.error && (
-                <p style={{ color: 'var(--red)', fontSize: '0.845rem', background: 'var(--red-dim)', borderRadius: '8px', padding: '0.7rem 1rem' }}>
-                  {JSON.stringify(save.error.response?.data)}
-                </p>
+                <div className="alert alert-red" style={{ fontSize: '0.845rem', padding: '0.75rem 1rem' }}>
+                  {getErrorMessage(save.error)}
+                </div>
               )}
+
               <div style={{ display: 'flex', gap: '0.625rem', paddingTop: '0.25rem' }}>
                 <button type="submit" disabled={save.isPending} className="btn btn-primary" style={{ flex: 1 }}>
                   {save.isPending ? 'Saving…' : editing ? 'Save Changes' : 'Create User'}
